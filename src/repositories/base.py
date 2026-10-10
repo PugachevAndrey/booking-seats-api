@@ -1,6 +1,8 @@
+from typing import Any
 from uuid import UUID
 
 from fastapi.encoders import jsonable_encoder
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -8,20 +10,36 @@ from sqlalchemy.ext.asyncio import AsyncSession
 class CRUDBase:
     """Базовый класс для CRUD операций."""
 
-    def __init__(self, model):
+    def __init__(self, model: Any) -> None:
+        """Инициализация CRUD."""
         self.model = model
 
-    async def get(self, obj_id: UUID, session: AsyncSession):
+    async def get(
+        self,
+        obj_id: UUID,
+        session: AsyncSession,
+    ) -> Any:
+        """Получить одну запись по ID."""
         db_obj = await session.execute(
-            select(self.model).where(self.model.id == obj_id)
+            select(self.model).where(self.model.id == obj_id),
         )
         return db_obj.scalars().first()
 
-    async def get_multi(self, session: AsyncSession):
+    async def get_multi(
+        self,
+        session: AsyncSession,
+    )-> list[Any]:
+        """Получить все записи."""
         db_objs = await session.execute(select(self.model))
         return db_objs.scalars().all()
 
-    async def create(self, obj_in, session: AsyncSession, user=None):
+    async def create(
+        self,
+        obj_in: BaseModel,
+        session: AsyncSession,
+        user: Any = None,
+    ) -> Any:
+        """Создать новую запись."""
         obj_in_data = obj_in.model_dump()
         if user is not None:
             obj_in_data['user_id'] = user.id
@@ -31,7 +49,13 @@ class CRUDBase:
         await session.refresh(db_obj)
         return db_obj
 
-    async def update(self, db_obj, obj_in, session: AsyncSession):
+    async def update(
+        self,
+        db_obj: Any,
+        obj_in: BaseModel,
+        session: AsyncSession,
+    ) -> Any:
+        """Обновить существующую запись."""
         obj_data = jsonable_encoder(db_obj)
         update_data = obj_in.model_dump(exclude_unset=True)
 
@@ -44,7 +68,12 @@ class CRUDBase:
         await session.refresh(db_obj)
         return db_obj
 
-    async def remove(self, db_obj, session: AsyncSession):
+    async def remove(
+        self,
+        db_obj: Any,
+        session: AsyncSession,
+    ) -> Any:
+        """Удалить запись."""
         await session.delete(db_obj)
         await session.commit()
         return db_obj
