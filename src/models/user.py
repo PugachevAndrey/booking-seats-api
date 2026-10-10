@@ -1,10 +1,12 @@
+"""Модель пользователя."""
+
 from sqlalchemy import ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.core.base_model import Base
 
 
-class Users(Base):
+class User(Base):
     """Модель пользователя."""
 
     username: Mapped[str] = mapped_column(

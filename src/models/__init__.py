@@ -1,9 +1,11 @@
 """Пакет моделей базы данных приложения."""
 
 from src.models.booking import Booking
-from src.models.users import Users
+from src.models.cafe import Cafe
+from src.models.user import User
 
 __all__ = (
-    'Users',
+    'User',
     'Booking',
+    'Cafe',
 )
