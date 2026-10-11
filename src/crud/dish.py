@@ -1,13 +1,15 @@
 from uuid import UUID
 
+from models.dish import Dish
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from crud.base import CRUDBase
-from models.dish import Dish
 
 
 class CRUDDish(CRUDBase[Dish]):
+    """CRUD для блюд."""
+
     async def get_by_cafe(
         self,
         session: AsyncSession,
@@ -16,12 +18,7 @@ class CRUDDish(CRUDBase[Dish]):
         skip: int = 0,
         limit: int = 100,
     ) -> list[Dish]:
-        """Блюда конкретного кафе.
-
-        Работает при условии, что в модели Dish есть поле cafe_id.
-        Если связь many-to-many (одно блюдо в нескольких кафе) —
-        метод надо переписать через join с таблицей связи.
-        """
+        """Блюда конкретного кафе."""
         stmt = (
             select(Dish)
             .where(Dish.cafe_id == cafe_id, Dish.is_active.is_(True))

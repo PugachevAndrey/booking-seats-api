@@ -1,13 +1,15 @@
 from uuid import UUID
 
+from models.slot import Slot
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from crud.base import CRUDBase
-from models.slot import Slot
 
 
 class CRUDSlot(CRUDBase[Slot]):
+    """CRUD для слотов времени."""
+
     async def get_by_cafe(
         self,
         session: AsyncSession,
@@ -17,6 +19,7 @@ class CRUDSlot(CRUDBase[Slot]):
         limit: int = 100,
         only_active: bool = True,
     ) -> list[Slot]:
+        """Слоты конкретного кафе."""
         stmt = select(Slot).where(Slot.cafe_id == cafe_id)
         if only_active:
             stmt = stmt.where(Slot.is_active.is_(True))

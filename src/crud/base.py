@@ -13,6 +13,7 @@ class CRUDBase(Generic[ModelType]):
     """Базовый CRUD-класс с типовыми операциями."""
 
     def __init__(self, model: Type[ModelType]) -> None:
+        """Инициализация CRUD для конкретной модели."""
         self.model = model
 
     async def get(
@@ -22,6 +23,7 @@ class CRUDBase(Generic[ModelType]):
         *,
         include_inactive: bool = False,
     ) -> ModelType | None:
+        """Получить одну запись по id."""
         stmt = select(self.model).where(self.model.id == obj_id)
         if not include_inactive:
             stmt = stmt.where(self.model.is_active.is_(True))
@@ -38,6 +40,7 @@ class CRUDBase(Generic[ModelType]):
         order_by: Any | None = None,
         **filters: Any,
     ) -> Sequence[ModelType]:
+        """Получить список записей с пагинацией и фильтрами."""
         stmt = select(self.model)
         if not include_inactive:
             stmt = stmt.where(self.model.is_active.is_(True))
@@ -47,7 +50,7 @@ class CRUDBase(Generic[ModelType]):
             column = getattr(self.model, field, None)
             if column is None:
                 raise AttributeError(
-                    f"Модель {self.model.__name__} не имеет поля '{field}'"
+                    f"Модель {self.model.__name__} не имеет поля '{field}'",
                 )
             stmt = stmt.where(column == value)
         if order_by is not None:
@@ -61,6 +64,7 @@ class CRUDBase(Generic[ModelType]):
         session: AsyncSession,
         **data: Any,
     ) -> ModelType:
+        """Создать новую запись."""
         obj = self.model(**data)
         session.add(obj)
         await session.flush()
@@ -73,6 +77,7 @@ class CRUDBase(Generic[ModelType]):
         obj: ModelType,
         **data: Any,
     ) -> ModelType:
+        """Обновить существующую запись."""
         for field, value in data.items():
             setattr(obj, field, value)
         session.add(obj)
@@ -85,6 +90,7 @@ class CRUDBase(Generic[ModelType]):
         session: AsyncSession,
         obj: ModelType,
     ) -> ModelType:
+        """Пометить запись как неактивную (is_active=False)."""
         obj.is_active = False
         session.add(obj)
         await session.flush()

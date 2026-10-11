@@ -1,13 +1,15 @@
 from uuid import UUID
 
+from models.action import Action
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from crud.base import CRUDBase
-from models.action import Action
 
 
 class CRUDAction(CRUDBase[Action]):
+    """CRUD для акций."""
+
     async def get_active_by_cafe(
         self,
         session: AsyncSession,
@@ -16,6 +18,7 @@ class CRUDAction(CRUDBase[Action]):
         skip: int = 0,
         limit: int = 100,
     ) -> list[Action]:
+        """Активные акции конкретного кафе."""
         stmt = (
             select(Action)
             .where(Action.cafe_id == cafe_id, Action.is_active.is_(True))
