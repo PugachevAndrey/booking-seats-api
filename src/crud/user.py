@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from models.user import User
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -50,7 +52,7 @@ class CRUDUser(CRUDBase[User]):
     async def get_managers_by_cafe(
         self,
         session: AsyncSession,
-        cafe_id,
+        cafe_id: UUID,
         *,
         skip: int = 0,
         limit: int = 100,
