@@ -1,6 +1,6 @@
 from models.cafe import Cafe
 
-from crud.base import CRUDBase
+from repositories.base import CRUDBase
 
 
 class CRUDCafe(CRUDBase[Cafe]):

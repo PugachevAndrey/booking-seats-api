@@ -1,27 +1,27 @@
 from uuid import UUID
 
-from models.action import Action
+from models.dish import Dish
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from crud.base import CRUDBase
+from repositories.base import CRUDBase
 
 
-class CRUDAction(CRUDBase[Action]):
-    """CRUD для акций."""
+class CRUDDish(CRUDBase[Dish]):
+    """CRUD для блюд."""
 
-    async def get_active_by_cafe(
+    async def get_by_cafe(
         self,
         session: AsyncSession,
         cafe_id: UUID,
         *,
         skip: int = 0,
         limit: int = 100,
-    ) -> list[Action]:
-        """Активные акции конкретного кафе."""
+    ) -> list[Dish]:
+        """Блюда конкретного кафе."""
         stmt = (
-            select(Action)
-            .where(Action.cafe_id == cafe_id, Action.is_active.is_(True))
+            select(Dish)
+            .where(Dish.cafe_id == cafe_id, Dish.is_active.is_(True))
             .offset(skip)
             .limit(limit)
         )
@@ -29,4 +29,4 @@ class CRUDAction(CRUDBase[Action]):
         return list(result.scalars().all())
 
 
-action_crud = CRUDAction(Action)
+dish_crud = CRUDDish(Dish)

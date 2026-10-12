@@ -4,7 +4,7 @@ from models.user import User
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from crud.base import CRUDBase
+from repositories.base import CRUDBase
 
 
 class CRUDUser(CRUDBase[User]):

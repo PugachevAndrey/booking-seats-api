@@ -1,6 +1,6 @@
 from models.media import Media
 
-from crud.base import CRUDBase
+from repositories.base import CRUDBase
 
 
 class CRUDMedia(CRUDBase[Media]):

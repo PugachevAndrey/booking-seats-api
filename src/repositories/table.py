@@ -4,7 +4,7 @@ from models.table import Table
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from crud.base import CRUDBase
+from repositories.base import CRUDBase
 
 
 class CRUDTable(CRUDBase[Table]):

@@ -1,79 +1,102 @@
-from typing import Any
+from typing import Any, Generic, Sequence, Type, TypeVar
 from uuid import UUID
 
-from fastapi.encoders import jsonable_encoder
-from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.base_model import Base
 
-class CRUDBase:
-    """Базовый класс для CRUD операций."""
+ModelType = TypeVar("ModelType", bound=Base)
 
-    def __init__(self, model: Any) -> None:
-        """Инициализация CRUD."""
+
+class CRUDBase(Generic[ModelType]):
+    """Базовый CRUD-класс с типовыми операциями.
+
+    Методы делают flush, а не commit — commit выполняет
+    зависимость get_session в core/db.py.
+    """
+
+    def __init__(self, model: Type[ModelType]) -> None:
+        """Инициализация CRUD для конкретной модели."""
         self.model = model
 
     async def get(
         self,
-        obj_id: UUID,
         session: AsyncSession,
-    ) -> Any:
-        """Получить одну запись по ID."""
-        db_obj = await session.execute(
-            select(self.model).where(self.model.id == obj_id),
-        )
-        return db_obj.scalars().first()
+        obj_id: UUID,
+        *,
+        include_inactive: bool = False,
+    ) -> ModelType | None:
+        """Получить одну запись по id."""
+        stmt = select(self.model).where(self.model.id == obj_id)
+        if not include_inactive:
+            stmt = stmt.where(self.model.is_active.is_(True))
+        result = await session.execute(stmt)
+        return result.scalar_one_or_none()
 
     async def get_multi(
         self,
         session: AsyncSession,
-    )-> list[Any]:
-        """Получить все записи."""
-        db_objs = await session.execute(select(self.model))
-        return db_objs.scalars().all()
+        *,
+        skip: int = 0,
+        limit: int = 100,
+        include_inactive: bool = False,
+        order_by: Any | None = None,
+        **filters: Any,
+    ) -> Sequence[ModelType]:
+        """Получить список записей с пагинацией и фильтрами."""
+        stmt = select(self.model)
+        if not include_inactive:
+            stmt = stmt.where(self.model.is_active.is_(True))
+        for field, value in filters.items():
+            if value is None:
+                continue
+            column = getattr(self.model, field, None)
+            if column is None:
+                raise AttributeError(
+                    f"Модель {self.model.__name__} не имеет поля '{field}'",
+                )
+            stmt = stmt.where(column == value)
+        if order_by is not None:
+            stmt = stmt.order_by(order_by)
+        stmt = stmt.offset(skip).limit(limit)
+        result = await session.execute(stmt)
+        return result.scalars().all()
 
     async def create(
         self,
-        obj_in: BaseModel,
         session: AsyncSession,
-        user: Any = None,
-    ) -> Any:
+        **data: Any,
+    ) -> ModelType:
         """Создать новую запись."""
-        obj_in_data = obj_in.model_dump()
-        if user is not None:
-            obj_in_data['user_id'] = user.id
-        db_obj = self.model(**obj_in_data)
-        session.add(db_obj)
-        await session.commit()
-        await session.refresh(db_obj)
-        return db_obj
+        obj = self.model(**data)
+        session.add(obj)
+        await session.flush()
+        await session.refresh(obj)
+        return obj
 
     async def update(
         self,
-        db_obj: Any,
-        obj_in: BaseModel,
         session: AsyncSession,
-    ) -> Any:
+        obj: ModelType,
+        **data: Any,
+    ) -> ModelType:
         """Обновить существующую запись."""
-        obj_data = jsonable_encoder(db_obj)
-        update_data = obj_in.model_dump(exclude_unset=True)
+        for field, value in data.items():
+            setattr(obj, field, value)
+        session.add(obj)
+        await session.flush()
+        await session.refresh(obj)
+        return obj
 
-        for field in obj_data:
-            if field in update_data:
-                setattr(db_obj, field, update_data[field])
-
-        session.add(db_obj)
-        await session.commit()
-        await session.refresh(db_obj)
-        return db_obj
-
-    async def remove(
+    async def soft_delete(
         self,
-        db_obj: Any,
         session: AsyncSession,
-    ) -> Any:
-        """Удалить запись."""
-        await session.delete(db_obj)
-        await session.commit()
-        return db_obj
+        obj: ModelType,
+    ) -> ModelType:
+        """Пометить запись как неактивную (is_active=False)."""
+        obj.is_active = False
+        session.add(obj)
+        await session.flush()
+        await session.refresh(obj)
+        return obj
