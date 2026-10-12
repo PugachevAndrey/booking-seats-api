@@ -5,7 +5,7 @@ import uuid
 from sqlalchemy import UUID, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from src.core.base_model import Base
+from core.base_model import Base
 
 
 class Cafe(Base):
