@@ -1,8 +1,6 @@
 """Модель бронирования столов с указанием времени."""
 
-import uuid
-
-from sqlalchemy import UUID, ForeignKey
+from sqlalchemy import ForeignKey, Integer
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.core.base_model import Base
@@ -13,18 +11,18 @@ class BookingTablesSlot(Base):
 
     __tablename__ = 'booking_tables_slots'
 
-    booking_id: Mapped[uuid.UUID] = mapped_column(
-        UUID,
-        ForeignKey('bookings.id'),
+    booking_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey('booking.id'),
         comment='ID бронирования',
     )
-    table_id: Mapped[uuid.UUID] = mapped_column(
-        UUID,
+    table_id: Mapped[int] = mapped_column(
+        Integer,
         ForeignKey('tables.id'),
         comment='ID стола',
     )
-    slot_id: Mapped[uuid.UUID] = mapped_column(
-        UUID,
+    slot_id: Mapped[int] = mapped_column(
+        Integer,
         ForeignKey('slots.id'),
         comment='ID временного слота',
     )

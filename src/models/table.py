@@ -1,8 +1,6 @@
 """Модель стола."""
 
-import uuid
-
-from sqlalchemy import UUID, ForeignKey, Integer, String
+from sqlalchemy import ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.core.base_model import Base
@@ -11,8 +9,8 @@ from src.core.base_model import Base
 class Table(Base):
     """Модель стола."""
 
-    cafe_id: Mapped[uuid.UUID] = mapped_column(
-        UUID,
+    cafe_id: Mapped[int] = mapped_column(
+        Integer,
         ForeignKey('cafes.id'),
         comment='ID кафе',
     )

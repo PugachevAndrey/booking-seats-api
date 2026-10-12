@@ -11,6 +11,8 @@ from src.core.base_model import Base
 class Booking(Base):
     """Модель бронирования."""
 
+    __tablename__ = 'booking'
+
     user_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey('users.id'),

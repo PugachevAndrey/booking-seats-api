@@ -1,9 +1,8 @@
 """Модель слотов для бронирования."""
 
-import uuid
 from datetime import datetime
 
-from sqlalchemy import UUID, DateTime, ForeignKey, String
+from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.core.base_model import Base
@@ -12,8 +11,8 @@ from src.core.base_model import Base
 class Slot(Base):
     """Модель слотов."""
 
-    cafe_id: Mapped[uuid.UUID] = mapped_column(
-        UUID,
+    cafe_id: Mapped[int] = mapped_column(
+        Integer,
         ForeignKey('cafes.id'),
         comment='ID кафе',
     )
