@@ -1,4 +1,7 @@
+"""Сервисные функции для работы со слотами."""
+
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -41,7 +44,9 @@ async def create_slot(
     """Создаёт новый слот."""
     ensure_cafe_access(actor_role, actor_cafe_id, cafe_id)
     if end_time <= start_time:
-        raise ValidationError('Время завершения должно быть позже времени начала.')
+        raise ValidationError(
+            'Время завершения должно быть позже времени начала.'
+        )
 
     slot = Slot(
         cafe_id=cafe_id,
@@ -60,7 +65,7 @@ async def update_slot(
     actor_role: str,
     actor_cafe_id: int | None,
     slot_id: int,
-    **fields: object,
+    **fields: Any,
 ) -> Slot:
     """Обновляет поля слота с проверкой прав."""
     slot = await get_slot(session, slot_id)
@@ -70,7 +75,9 @@ async def update_slot(
         if name in allowed:
             setattr(slot, name, value)
     if slot.end_time <= slot.start_time:
-        raise ValidationError('Время завершения должно быть позже времени начала.')
+        raise ValidationError(
+            'Время завершения должно быть позже времени начала.'
+        )
     await session.flush()
     await session.refresh(slot)
     return slot

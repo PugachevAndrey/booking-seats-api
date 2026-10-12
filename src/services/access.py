@@ -24,7 +24,9 @@ def is_staff(role: str) -> bool:
 def ensure_staff(role: str) -> None:
     """Требует роль администратора или менеджера."""
     if not is_staff(role):
-        raise PermissionDeniedError('Требуется роль администратора или менеджера.')
+        raise PermissionDeniedError(
+            'Требуется роль администратора или менеджера.'
+        )
 
 
 def ensure_admin(role: str) -> None:
@@ -33,7 +35,11 @@ def ensure_admin(role: str) -> None:
         raise PermissionDeniedError('Требуется роль администратора.')
 
 
-def ensure_cafe_access(role: str, actor_cafe_id: int | None, cafe_id: int) -> None:
+def ensure_cafe_access(
+    role: str,
+    actor_cafe_id: int | None,
+    cafe_id: int,
+) -> None:
     """Админ — любое кафе, менеджер — только своё."""
     if is_admin(role):
         return

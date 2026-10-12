@@ -1,4 +1,7 @@
+"""Сервисные функции для работы с кафе."""
+
 import uuid
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -70,13 +73,17 @@ async def update_cafe(
     actor_role: str,
     actor_cafe_id: int | None,
     cafe_id: int,
-    **fields: object,
+    **fields: Any,
 ) -> Cafe:
     """Обновляет поля кафе с проверкой прав."""
     ensure_cafe_access(actor_role, actor_cafe_id, cafe_id)
     cafe = await get_cafe(session, cafe_id)
     if 'photo_id' in fields:
-        await _ensure_photo_free(session, fields['photo_id'], exclude_cafe_id=cafe_id)
+        await _ensure_photo_free(
+            session,
+            fields['photo_id'],
+            exclude_cafe_id=cafe_id,
+        )
     allowed = {'name', 'address', 'phone', 'description', 'photo_id'}
     for name, value in fields.items():
         if name in allowed:

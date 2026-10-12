@@ -1,3 +1,7 @@
+"""Сервисные функции для работы с пользователями."""
+
+from typing import Any
+
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -92,7 +96,7 @@ async def update_user(
     actor_id: int,
     actor_role: str,
     user_id: int,
-    **fields: object,
+    **fields: Any,
 ) -> User:
     """Обновляет поля пользователя с проверкой прав и уникальности."""
     if actor_id != user_id:
@@ -109,7 +113,10 @@ async def update_user(
             exclude_user_id=user_id,
         )
 
-    allowed = {'username', 'email', 'phone', 'tg_id', 'password_hash', 'role', 'cafe_id'}
+    allowed = {
+        'username', 'email', 'phone', 'tg_id',
+        'password_hash', 'role', 'cafe_id',
+    }
     for name, value in fields.items():
         if name in allowed:
             setattr(user, name, value)

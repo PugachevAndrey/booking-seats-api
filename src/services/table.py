@@ -1,3 +1,7 @@
+"""Сервисные функции для работы со столами."""
+
+from typing import Any
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -53,7 +57,7 @@ async def update_table(
     actor_role: str,
     actor_cafe_id: int | None,
     table_id: int,
-    **fields: object,
+    **fields: Any,
 ) -> Table:
     """Обновляет поля стола с проверкой прав."""
     table = await get_table(session, table_id)

@@ -1,4 +1,7 @@
+"""Сервисные функции для работы с бронированиями."""
+
 from datetime import datetime, time
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,7 +11,12 @@ from models.booking_tables_slot import BookingTablesSlot
 from models.slot import Slot
 from models.table import Table
 
-from .access import ROLE_ADMIN, ensure_cafe_access, ensure_owner_or_staff, is_staff
+from .access import (
+    ROLE_ADMIN,
+    ensure_cafe_access,
+    ensure_owner_or_staff,
+    is_staff,
+)
 from .errors import ConflictError, NotFoundError, ValidationError
 
 
@@ -68,7 +76,9 @@ async def _get_booking_link(
 ) -> BookingTablesSlot | None:
     """Возвращает связку стола и слота для брони."""
     result = await session.execute(
-        select(BookingTablesSlot).where(BookingTablesSlot.booking_id == booking_id)
+        select(BookingTablesSlot).where(
+            BookingTablesSlot.booking_id == booking_id
+        )
     )
     return result.scalar_one_or_none()
 
@@ -145,7 +155,7 @@ async def update_booking(
     actor_role: str,
     actor_cafe_id: int | None,
     booking_id: int,
-    **fields: object,
+    **fields: Any,
 ) -> Booking:
     """Обновляет поля бронирования с проверкой прав и занятости."""
     booking = await get_booking(session, booking_id)
