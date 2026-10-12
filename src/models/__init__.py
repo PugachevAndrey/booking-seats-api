@@ -1,12 +1,12 @@
 """Пакет моделей базы данных приложения."""
 
-from src.models.booking import Booking
-from src.models.booking_tables_slot import BookingTablesSlot
-from src.models.cafe import Cafe
-from src.models.media import Media
-from src.models.slot import Slot
-from src.models.table import Table
-from src.models.user import User
+from models.booking import Booking
+from models.booking_tables_slot import BookingTablesSlot
+from models.cafe import Cafe
+from models.media import Media
+from models.slot import Slot
+from models.table import Table
+from models.user import User
 
 __all__ = (
     'User',

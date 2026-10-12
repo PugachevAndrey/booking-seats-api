@@ -5,7 +5,7 @@ import uuid
 from sqlalchemy import UUID, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from src.core.base_model import Base
+from core.base_model import Base
 
 
 class Media(Base):
@@ -15,6 +15,8 @@ class Media(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID,
+        primary_key=True,
+        default=uuid.uuid4,
         comment='ID медиафайла',
     )
     content_type: Mapped[str] = mapped_column(
