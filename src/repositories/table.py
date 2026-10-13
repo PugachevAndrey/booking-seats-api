@@ -1,9 +1,9 @@
 from uuid import UUID
 
-from models.table import Table
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from models.table import Table
 from repositories.base import CRUDBase
 
 
