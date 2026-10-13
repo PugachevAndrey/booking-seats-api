@@ -1,11 +1,10 @@
-"""Сервисные функции для работы со слотами."""
-
 from datetime import datetime
 from typing import Any
 
-from models.slot import Slot
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from models.slot import Slot
 
 from .access import ensure_cafe_access
 from .errors import NotFoundError, ValidationError

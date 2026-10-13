@@ -1,10 +1,9 @@
-"""Сервисные функции для работы с пользователями."""
-
 from typing import Any
 
-from models.user import User
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from models.user import User
 
 from .access import ROLE_ADMIN, ensure_admin, ensure_staff
 from .errors import ConflictError, NotFoundError

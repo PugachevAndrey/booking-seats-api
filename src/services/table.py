@@ -1,10 +1,9 @@
-"""Сервисные функции для работы со столами."""
-
 from typing import Any
 
-from models.table import Table
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from models.table import Table
 
 from .access import ensure_cafe_access
 from .errors import NotFoundError

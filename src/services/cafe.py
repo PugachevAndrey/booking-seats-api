@@ -1,11 +1,10 @@
-"""Сервисные функции для работы с кафе."""
-
 import uuid
 from typing import Any
 
-from models.cafe import Cafe
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from models.cafe import Cafe
 
 from .access import ensure_admin, ensure_cafe_access, ensure_staff
 from .errors import ConflictError, NotFoundError
