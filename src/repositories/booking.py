@@ -1,10 +1,10 @@
 from datetime import date
 from uuid import UUID
 
-from models.booking import Booking
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from models.booking import Booking
 from repositories.base import CRUDBase
 
 

@@ -1,9 +1,9 @@
 from uuid import UUID
 
-from models.user import User
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from models.user import User
 from repositories.base import CRUDBase
 
 
@@ -62,7 +62,7 @@ class CRUDUser(CRUDBase[User]):
             select(User)
             .where(
                 User.cafe_id == cafe_id,
-                User.role == "manager",
+                User.role == 'manager',
                 User.is_active.is_(True),
             )
             .offset(skip)

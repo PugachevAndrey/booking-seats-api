@@ -1,5 +1,4 @@
 from models.cafe import Cafe
-
 from repositories.base import CRUDBase
 
 
