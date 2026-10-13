@@ -1,9 +1,8 @@
 import uuid
 
+from models.media import Media
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from models.media import Media
 
 from .access import ensure_staff
 from .errors import NotFoundError

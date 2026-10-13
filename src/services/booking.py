@@ -3,13 +3,12 @@
 from datetime import datetime, time
 from typing import Any
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from models.booking import Booking
 from models.booking_tables_slot import BookingTablesSlot
 from models.slot import Slot
 from models.table import Table
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from .access import (
     ROLE_ADMIN,
@@ -77,8 +76,8 @@ async def _get_booking_link(
     """Возвращает связку стола и слота для брони."""
     result = await session.execute(
         select(BookingTablesSlot).where(
-            BookingTablesSlot.booking_id == booking_id
-        )
+            BookingTablesSlot.booking_id == booking_id,
+        ),
     )
     return result.scalar_one_or_none()
 

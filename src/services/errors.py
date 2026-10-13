@@ -8,6 +8,7 @@ class DomainError(Exception):
     status_code = 400
 
     def __init__(self, message: str | None = None) -> None:
+        """Создаёт исключение с сообщением или значением по умолчанию."""
         self.message = message or self.default_message
         super().__init__(self.message)
 

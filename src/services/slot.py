@@ -3,10 +3,9 @@
 from datetime import datetime
 from typing import Any
 
+from models.slot import Slot
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from models.slot import Slot
 
 from .access import ensure_cafe_access
 from .errors import NotFoundError, ValidationError
@@ -45,7 +44,7 @@ async def create_slot(
     ensure_cafe_access(actor_role, actor_cafe_id, cafe_id)
     if end_time <= start_time:
         raise ValidationError(
-            'Время завершения должно быть позже времени начала.'
+            'Время завершения должно быть позже времени начала.',
         )
 
     slot = Slot(
@@ -76,7 +75,7 @@ async def update_slot(
             setattr(slot, name, value)
     if slot.end_time <= slot.start_time:
         raise ValidationError(
-            'Время завершения должно быть позже времени начала.'
+            'Время завершения должно быть позже времени начала.',
         )
     await session.flush()
     await session.refresh(slot)

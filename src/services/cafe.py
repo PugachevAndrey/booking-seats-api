@@ -3,10 +3,9 @@
 import uuid
 from typing import Any
 
+from models.cafe import Cafe
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from models.cafe import Cafe
 
 from .access import ensure_admin, ensure_cafe_access, ensure_staff
 from .errors import ConflictError, NotFoundError
@@ -23,7 +22,7 @@ async def get_cafe(session: AsyncSession, cafe_id: int) -> Cafe:
 async def get_cafes(session: AsyncSession) -> list[Cafe]:
     """Возвращает список активных кафе."""
     result = await session.execute(
-        select(Cafe).where(Cafe.is_active.is_(True)).order_by(Cafe.id)
+        select(Cafe).where(Cafe.is_active.is_(True)).order_by(Cafe.id),
     )
     return list(result.scalars().all())
 

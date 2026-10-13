@@ -2,10 +2,9 @@
 
 from typing import Any
 
+from models.user import User
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from models.user import User
 
 from .access import ROLE_ADMIN, ensure_admin, ensure_staff
 from .errors import ConflictError, NotFoundError
@@ -22,7 +21,7 @@ async def get_user(session: AsyncSession, user_id: int) -> User:
 async def get_user_by_email(session: AsyncSession, email: str) -> User | None:
     """Возвращает пользователя по e-mail."""
     result = await session.execute(
-        select(User).where(User.email == email, User.is_active.is_(True))
+        select(User).where(User.email == email, User.is_active.is_(True)),
     )
     return result.scalar_one_or_none()
 
@@ -54,7 +53,7 @@ async def _ensure_unique(
             User.email == email,
             User.phone == phone,
             User.tg_id == tg_id,
-        )
+        ),
     )
     if exclude_user_id is not None:
         query = query.where(User.id != exclude_user_id)
