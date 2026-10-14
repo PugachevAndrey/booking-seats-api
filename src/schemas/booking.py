@@ -8,7 +8,7 @@ from .cafe import CafeShortInfo
 from .user import UserShortInfo
 
 
-class BookingInfo(BaseModel, MainSchema):
+class BookingInfo(MainSchema):
     """Схема чтения бронирования."""
 
     id: int

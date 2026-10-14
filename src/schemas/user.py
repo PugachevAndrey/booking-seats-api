@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import Self
 
-from fastapi_users import schemas
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 from pydantic_extra_types.phone_numbers import PhoneNumber
 
@@ -31,7 +30,7 @@ class UserInfo(UserShortInfo):
     model_config = ConfigDict(from_attributes=True, extra='forbid')
 
 
-class UserCreate(schemas.BaseUserCreate):
+class UserCreate(BaseModel):
     """Схема создания пользователя."""
 
     username: str = Field(max_length=MAX_USERNAME_LENGTH)
@@ -48,7 +47,7 @@ class UserCreate(schemas.BaseUserCreate):
         return self
 
 
-class UserUpdate(schemas.BaseUserUpdate):
+class UserUpdate(BaseModel):
     """Схема изменения пользователя."""
 
     username: str | None = Field(max_length=MAX_USERNAME_LENGTH, default=None)
