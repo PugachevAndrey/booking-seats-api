@@ -1,6 +1,6 @@
 """Модель пользователя."""
 
-from sqlalchemy import ForeignKey, Integer, String
+from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.base_model import Base
@@ -35,9 +35,4 @@ class User(Base):
     role: Mapped[str] = mapped_column(
         String(20),
         comment='Роль пользователя',
-    )
-    cafe_id: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey('cafes.id'),
-        comment='ID кафе',
     )
