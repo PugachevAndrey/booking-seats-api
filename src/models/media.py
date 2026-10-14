@@ -21,5 +21,5 @@ class Media(Base):
     )
     file_name: Mapped[str] = mapped_column(
         String(50),
-        comment='Тип контента',
+        comment='Имя файла',
     )

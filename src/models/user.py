@@ -30,7 +30,7 @@ class User(Base):
     )
     password_hash: Mapped[str] = mapped_column(
         String(255),
-        comment='Хен пароля пользователя',
+        comment='Хэш пароля пользователя',
     )
     role: Mapped[str] = mapped_column(
         String(20),

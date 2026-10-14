@@ -16,7 +16,7 @@ class Table(Base):
     )
     description: Mapped[str] = mapped_column(
         String(255),
-        comment='Описание слота',
+        comment='Описание стола',
     )
     seat_number: Mapped[int] = mapped_column(
         Integer,

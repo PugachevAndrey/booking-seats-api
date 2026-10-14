@@ -11,7 +11,7 @@ class CafeManager(Base):
 
     __tablename__ = 'cafe_managers'
 
-    user_id: Mapped = mapped_column(
+    user_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey('users.id'),
         comment='ID пользователя',

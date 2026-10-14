@@ -25,7 +25,7 @@ class Booking(Base):
     )
     guest_number: Mapped[int] = mapped_column(
         Integer,
-        comment='Номер клиента',
+        comment='Количество гостей',
     )
     note: Mapped[str] = mapped_column(
         Text(),
@@ -36,6 +36,6 @@ class Booking(Base):
         comment='Статус',
     )
     booking_date: Mapped[datetime] = mapped_column(
-        DateTime,
+        DateTime(timezone=True),
         comment='Дата и время бронирования',
     )
