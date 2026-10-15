@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, String
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.base_model import Base
@@ -30,6 +30,10 @@ class Slot(Base):
     )
 
     __table_args__ = (
+        Index(
+            'ix_slots_cafe_id',
+            'cafe_id',
+        ),
         CheckConstraint(
             'start_time >= CURRENT_TIMESTAMP',
             name='ck_slots_start_time_not_in_past_time',

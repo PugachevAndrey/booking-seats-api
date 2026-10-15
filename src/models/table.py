@@ -1,6 +1,6 @@
 """Модель стола."""
 
-from sqlalchemy import ForeignKey, Integer, String
+from sqlalchemy import ForeignKey, Index, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.base_model import Base
@@ -21,4 +21,11 @@ class Table(Base):
     seat_number: Mapped[int] = mapped_column(
         Integer,
         comment='Номер сидения',
+    )
+
+    __table_args__ = (
+        Index(
+            'ix_tables_cafe_id',
+            'cafe_id',
+        ),
     )
