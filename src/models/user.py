@@ -4,6 +4,7 @@ from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.base_model import Base
+from core.enums import UserRole
 
 
 class User(Base):
@@ -32,7 +33,7 @@ class User(Base):
         String(255),
         comment='Хэш пароля пользователя',
     )
-    role: Mapped[str] = mapped_column(
+    role: Mapped[UserRole] = mapped_column(
         String(20),
         comment='Роль пользователя',
     )

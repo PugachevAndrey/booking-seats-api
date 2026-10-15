@@ -6,6 +6,7 @@ from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.base_model import Base
+from core.enums import BookingStatus
 
 
 class Booking(Base):
@@ -31,7 +32,7 @@ class Booking(Base):
         Text(),
         comment='Примечание',
     )
-    status: Mapped[str] = mapped_column(
+    status: Mapped[BookingStatus] = mapped_column(
         String(20),
         comment='Статус',
     )
