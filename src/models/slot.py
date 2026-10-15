@@ -1,8 +1,8 @@
 """Модель слотов для бронирования."""
 
-from datetime import datetime
+from datetime import time
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, String
+from sqlalchemy import CheckConstraint, ForeignKey, Index, Integer, String, Time
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.base_model import Base
@@ -16,12 +16,12 @@ class Slot(Base):
         ForeignKey('cafes.id'),
         comment='ID кафе',
     )
-    start_time: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
+    start_time: Mapped[time] = mapped_column(
+        Time,
         comment='Время начала слота',
     )
-    end_time: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
+    end_time: Mapped[time] = mapped_column(
+        Time,
         comment='Время завершения слота',
     )
     description: Mapped[str] = mapped_column(
@@ -33,10 +33,6 @@ class Slot(Base):
         Index(
             'ix_slots_cafe_id',
             'cafe_id',
-        ),
-        CheckConstraint(
-            'start_time >= CURRENT_TIMESTAMP',
-            name='ck_slots_start_time_not_in_past_time',
         ),
         CheckConstraint(
             'end_time > start_time',
