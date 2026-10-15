@@ -1,8 +1,8 @@
 """Модель бронирования."""
 
-from datetime import datetime
+from datetime import date
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import Date, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.base_model import Base
@@ -36,9 +36,9 @@ class Booking(Base):
         String(20),
         comment='Статус',
     )
-    booking_date: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        comment='Дата и время бронирования',
+    booking_date: Mapped[date] = mapped_column(
+        Date,
+        comment='Дата бронирования',
     )
 
     __table_args__ = (
