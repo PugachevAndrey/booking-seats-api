@@ -1,10 +1,13 @@
 """Модель пользователя."""
 
+from pwdlib import PasswordHash
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.base_model import Base
 from core.enums import UserRole
+
+_password_hash = PasswordHash.recommended()
 
 
 class User(Base):
@@ -37,3 +40,11 @@ class User(Base):
         String(20),
         comment='Роль пользователя',
     )
+
+    def set_password(self, password: str) -> None:
+        """Хеширует и сохраняет пароль."""
+        self.password_hash = _password_hash.hash(password)
+
+    def check_password(self, password: str) -> bool:
+        """Проверяет пароль и сохранённый хэш."""
+        return _password_hash.verify(password, self.password_hash)
