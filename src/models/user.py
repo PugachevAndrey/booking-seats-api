@@ -41,9 +41,14 @@ class User(Base):
         comment='Роль пользователя',
     )
 
+    @classmethod
+    def hash_password(cls, password: str) -> str:
+        """Хэширует пароль."""
+        return _password_hash.hash(password)
+
     def set_password(self, password: str) -> None:
         """Хеширует и сохраняет пароль."""
-        self.password_hash = _password_hash.hash(password)
+        self.password_hash = self.hash_password(password)
 
     def check_password(self, password: str) -> bool:
         """Проверяет пароль и сохранённый хэш."""
