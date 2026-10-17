@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import MISSING, BaseModel, ConfigDict, Field
 
 from .base import MainSchema
 from .cafe import CafeShortInfo
@@ -26,13 +26,13 @@ class TableInfo(TableShortInfo, MainSchema):
 class TableCreate(BaseModel):
     """Схема создания стола."""
 
-    description: str | None = Field(default=None, max_length=MAX_LENGTH)
+    description: str | None = Field(max_length=MAX_LENGTH)
     seat_number: int
 
 
 class TableUpdate(BaseModel):
     """Схема изменения стола."""
 
-    description: str | None = Field(default=None)
-    seat_number: int | None = Field(default=None)
-    is_active: bool | None = Field(default=None)
+    description: str | None | MISSING = MISSING
+    seat_number: int | MISSING = MISSING
+    is_active: bool | MISSING = MISSING

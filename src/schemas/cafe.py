@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import MISSING, BaseModel, ConfigDict, Field
 from pydantic_extra_types.phone_numbers import PhoneNumber
 
 from .base import MainSchema
@@ -35,18 +35,18 @@ class CafeCreate(BaseModel):
     name: str = Field(min_length=MIN_SYMBOL, max_length=MAX_LENGTH)
     address: str = Field(min_length=MIN_SYMBOL, max_length=ADDRESS_LENGTH)
     phone: PhoneNumber = Field(min_length=MIN_SYMBOL, max_length=MIN_SYMBOL)
-    description: str | None = Field(default=None)
-    photo_id: UUID | None = Field(default=None)
-    managers_id: list[int] = Field(..., min_length=MIN_SYMBOL)
+    description: str | None
+    photo_id: UUID | None
+    managers_id: list[int] = Field(min_length=MIN_SYMBOL)
 
 
 class CafeUpdate(BaseModel):
     """Схема изменения кафе."""
 
-    name: str | None = Field(min_length=MIN_SYMBOL, max_length=MAX_LENGTH, default=None)
-    address: str | None = Field(min_length=MIN_SYMBOL, max_length=ADDRESS_LENGTH, default=None)
-    phone: PhoneNumber | None = Field(min_length=MIN_SYMBOL, max_length=MIN_LENGTH, default=None)
-    description: str | None = Field(default=None)
-    photo_id: UUID | None = Field(default=None)
-    managers_id: list[int] | None = Field(..., min_length=MIN_SYMBOL, default=None)
-    is_active: bool | None = Field(default=None)
+    name: str | MISSING = Field(min_length=MIN_SYMBOL, max_length=MAX_LENGTH, default=MISSING)
+    address: str | MISSING = Field(min_length=MIN_SYMBOL, max_length=ADDRESS_LENGTH, default=MISSING)
+    phone: PhoneNumber | MISSING = Field(min_length=MIN_SYMBOL, max_length=MIN_LENGTH, default=MISSING)
+    description: str | None | MISSING = MISSING
+    photo_id: UUID | None | MISSING = MISSING
+    managers_id: list[int] | MISSING = Field(min_length=MIN_SYMBOL, default=MISSING)
+    is_active: bool | MISSING = MISSING
