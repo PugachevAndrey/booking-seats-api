@@ -27,9 +27,9 @@ class Cafe(Base):
         Text(),
         comment='Описание кафе',
     )
-    photo_id: Mapped[uuid.UUID] = mapped_column(
+    photo_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID,
-        ForeignKey('media.id', ondelete='CASCADE'),
+        ForeignKey('media.id', ondelete='SET NULL'),
         unique=True,
         comment='ID фотографии',
     )

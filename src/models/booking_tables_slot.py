@@ -1,6 +1,6 @@
 """Модель бронирования столов с указанием времени."""
 
-from sqlalchemy import ForeignKey, Integer
+from sqlalchemy import ForeignKey, Index, Integer
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.base_model import Base
@@ -25,4 +25,11 @@ class BookingTablesSlot(Base):
         Integer,
         ForeignKey('slots.id'),
         comment='ID временного слота',
+    )
+
+    __table_args__ = (
+        Index(
+            'ix_booking_tables_slots_slot_id',
+            'slot_id',
+        ),
     )

@@ -1,9 +1,13 @@
 """Модель пользователя."""
 
-from sqlalchemy import ForeignKey, Integer, String
+from pwdlib import PasswordHash
+from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.base_model import Base
+from core.enums import UserRole
+
+_password_hash = PasswordHash.recommended()
 
 
 class User(Base):
@@ -30,14 +34,22 @@ class User(Base):
     )
     password_hash: Mapped[str] = mapped_column(
         String(255),
-        comment='Хен пароля пользователя',
+        comment='Хэш пароля пользователя',
     )
-    role: Mapped[str] = mapped_column(
+    role: Mapped[UserRole] = mapped_column(
         String(20),
         comment='Роль пользователя',
     )
-    cafe_id: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey('cafes.id'),
-        comment='ID кафе',
-    )
+
+    @classmethod
+    def hash_password(cls, password: str) -> str:
+        """Хэширует пароль."""
+        return _password_hash.hash(password)
+
+    def set_password(self, password: str) -> None:
+        """Хеширует и сохраняет пароль."""
+        self.password_hash = self.hash_password(password)
+
+    def check_password(self, password: str) -> bool:
+        """Проверяет пароль и сохранённый хэш."""
+        return _password_hash.verify(password, self.password_hash)

@@ -19,7 +19,7 @@ class Media(Base):
         default=uuid.uuid4,
         comment='ID медиафайла',
     )
-    content_type: Mapped[str] = mapped_column(
+    file_name: Mapped[str] = mapped_column(
         String(50),
-        comment='Тип контента',
+        comment='Имя файла',
     )
