@@ -1,11 +1,12 @@
 """Модель бронирования."""
 
-from datetime import datetime
+from datetime import date
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Date, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.base_model import Base
+from core.enums import BookingStatus
 
 
 class Booking(Base):
@@ -25,17 +26,30 @@ class Booking(Base):
     )
     guest_number: Mapped[int] = mapped_column(
         Integer,
-        comment='Номер клиента',
+        comment='Количество гостей',
     )
     note: Mapped[str] = mapped_column(
         Text(),
         comment='Примечание',
     )
-    status: Mapped[str] = mapped_column(
+    status: Mapped[BookingStatus] = mapped_column(
         String(20),
         comment='Статус',
     )
-    booking_date: Mapped[datetime] = mapped_column(
-        DateTime,
-        comment='Дата и время бронирования',
+    booking_date: Mapped[date] = mapped_column(
+        Date,
+        comment='Дата бронирования',
+    )
+
+    __table_args__ = (
+        Index(
+            'ix_booking_cafe_id_booking_date',
+            'cafe_id',
+            'booking_date',
+        ),
+        Index(
+            'ix_booking_user_id_booking_date',
+            'user_id',
+            'booking_date',
+        ),
     )
