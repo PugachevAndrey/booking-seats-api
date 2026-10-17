@@ -5,7 +5,7 @@ from pydantic import MISSING, BaseModel, ConfigDict, EmailStr, Field, model_vali
 from pydantic_extra_types.phone_numbers import PhoneNumber
 
 from .constants import MAX_LENGTH, MAX_TG_LENGTH, MAX_USERNAME_LENGTH, MIN_LENGTH
-from src.core.enums.py import UserRole
+from src.core.enums import UserRole
 
 
 class UserShortInfo(BaseModel):
