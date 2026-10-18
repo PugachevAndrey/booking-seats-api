@@ -1,12 +1,17 @@
-# Python-generated files
 __pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
-
-# Virtual environments
-.venv
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+.venv*/
+venv/
+env/
+*.db
+*.sqlite3
 .env
-uv.lock
+_save06/
+
+# не коммитим в 06 (идут в 07 / другие ветки)
+src/validators/
