@@ -1,10 +1,11 @@
 from datetime import datetime
 from typing import Self
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
+from pydantic import MISSING, BaseModel, ConfigDict, EmailStr, Field, model_validator
 from pydantic_extra_types.phone_numbers import PhoneNumber
 
 from .constants import MAX_LENGTH, MAX_TG_LENGTH, MAX_USERNAME_LENGTH, MIN_LENGTH
+from src.core.enums import UserRole
 
 
 class UserShortInfo(BaseModel):
@@ -22,10 +23,10 @@ class UserShortInfo(BaseModel):
 class UserInfo(UserShortInfo):
     """Схема чтения инфо о пользователе."""
 
-    role: str  # UserRole
+    role: UserRole
     is_active: bool
     created_at: datetime
-    updated_at: datetime | None
+    updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True, extra='forbid')
 
@@ -50,10 +51,10 @@ class UserCreate(BaseModel):
 class UserUpdate(BaseModel):
     """Схема изменения пользователя."""
 
-    username: str | None = Field(max_length=MAX_USERNAME_LENGTH, default=None)
-    email: EmailStr | None = Field(max_length=MAX_LENGTH, default=None)
-    phone: PhoneNumber | None = Field(max_length=MIN_LENGTH, default=None)
-    tg_id: str | None = Field(max_length=MAX_TG_LENGTH, default=None)
-    role: str | None = Field(default=None)  # UserRole
-    password: str | None = Field(max_length=MAX_LENGTH, default=None)
-    is_active: bool | None = Field(default=None)
+    username: str | MISSING = Field(max_length=MAX_USERNAME_LENGTH, default=MISSING)
+    email: EmailStr | None | MISSING = Field(max_length=MAX_LENGTH, default=MISSING)
+    phone: PhoneNumber | None | MISSING = Field(max_length=MIN_LENGTH, default=MISSING)
+    tg_id: str | None | MISSING = Field(max_length=MAX_TG_LENGTH, default=MISSING)
+    role: UserRole | MISSING = MISSING
+    password: str | MISSING = Field(max_length=MAX_LENGTH, default=MISSING)
+    is_active: bool | MISSING = MISSING

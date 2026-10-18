@@ -1,6 +1,6 @@
 from datetime import time
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import MISSING, BaseModel, ConfigDict, Field
 
 from .base import MainSchema
 from .cafe import CafeShortInfo
@@ -31,13 +31,13 @@ class TimeSlotCreate(BaseModel):
 
     start_time: time
     end_time: time
-    description: str | None = Field(default=None, max_length=MAX_LENGTH)
+    description: str | None = Field(max_length=MAX_LENGTH)
 
 
 class TableUpdate(BaseModel):
     """Схема изменения временного слота."""
 
-    start_time: time | None = Field(default=None)
-    end_time: time | None = Field(default=None)
-    description: str | None = Field(default=None, max_length=MAX_LENGTH)
-    is_active: bool | None = Field(default=None)
+    start_time: time | None | MISSING = MISSING
+    end_time: time | None | MISSING = MISSING
+    description: str | None | MISSING = Field(max_length=MAX_LENGTH, default=MISSING)
+    is_active: bool | None | MISSING = MISSING
