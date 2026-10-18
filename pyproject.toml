@@ -27,3 +27,5 @@ line-length = 88
 [tool.ruff.lint.isort]
 known-first-party = ["api", "core", "models", "repositories", "schemas", "services", "validators"]
 
+[tool.ruff.lint.per-file-ignores]
+"src/services/*.py" = ["I001"]
