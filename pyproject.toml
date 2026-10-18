@@ -25,5 +25,5 @@ src = ["src"]
 line-length = 88
 
 [tool.ruff.lint.isort]
-known-first-party = ["models", "services", "repositories", "core", "api"]
+known-first-party = ["api", "core", "models", "repositories", "schemas", "services", "validators"]
 
