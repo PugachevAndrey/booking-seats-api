@@ -7,12 +7,12 @@ from models.cafe import Cafe
 from models.media import Media
 
 from .access import ensure_staff, is_admin
-from .errors import (
+from core.errors import (
     ConflictError,
     NotFoundError,
     PermissionDeniedError,
 )
-from .validations import validate_media_file_name
+from validators import validate_media_file_name
 
 
 async def get_media(

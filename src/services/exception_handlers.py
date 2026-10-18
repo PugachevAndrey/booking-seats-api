@@ -5,8 +5,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from .errors import DomainError, error_payload
-from .validations import (
+from core.errors import DomainError, error_payload
+from validators import (
     DEFAULT_HTTP_MESSAGE,
     build_http_error_code,
     build_validation_error_content,

@@ -7,8 +7,8 @@ from models.cafe_manager import CafeManager
 from models.user import User
 
 from .access import ROLE_ADMIN, ROLES, ROLE_USER, ensure_admin, ensure_staff
-from .errors import ConflictError, NotFoundError, ValidationError
-from .validations import (
+from core.errors import ConflictError, NotFoundError, ValidationError
+from validators import (
     ensure_text_not_blank,
     validate_role,
     validate_role_change,

@@ -11,8 +11,8 @@ from .cafe_manager import (
     delete_cafe_managers,
     sync_cafe_managers,
 )
-from .errors import ConflictError, NotFoundError, ValidationError
-from .validations import (
+from core.errors import ConflictError, NotFoundError, ValidationError
+from validators import (
     validate_cafe_description,
     validate_cafe_fields,
 )

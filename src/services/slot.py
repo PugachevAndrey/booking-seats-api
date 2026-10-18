@@ -7,8 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.slot import Slot
 
 from .access import ensure_cafe_access
-from .errors import NotFoundError, ValidationError
-from .validations import (
+from core.errors import NotFoundError, ValidationError
+from validators import (
     validate_slot_description,
     validate_slot_time_range,
 )

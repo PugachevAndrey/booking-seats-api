@@ -6,8 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.table import Table
 
 from .access import ensure_cafe_access
-from .errors import NotFoundError, ValidationError
-from .validations import (
+from core.errors import NotFoundError, ValidationError
+from validators import (
     validate_table_description,
     validate_table_seat_number,
 )

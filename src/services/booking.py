@@ -17,14 +17,14 @@ from .access import (
     ensure_owner_or_staff,
     is_staff,
 )
-from .errors import (
+from core.errors import (
     ConflictError,
     NotFoundError,
     PermissionDeniedError,
     ValidationError,
 )
 from .user import get_user
-from .validations import (
+from validators import (
     validate_booking_date,
     validate_booking_guest_number,
     validate_booking_note,

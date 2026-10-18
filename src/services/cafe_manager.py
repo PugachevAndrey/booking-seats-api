@@ -6,7 +6,7 @@ from models.cafe_manager import CafeManager
 from models.user import User
 
 from .access import ensure_admin
-from .errors import ConflictError, NotFoundError
+from core.errors import ConflictError, NotFoundError
 
 
 async def _ensure_cafe_exists(
