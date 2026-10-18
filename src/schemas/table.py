@@ -1,16 +1,17 @@
-from pydantic import MISSING, BaseModel, ConfigDict, Field
+from pydantic import MISSING, ConfigDict, Field
 
-from .base import MainSchema
+from .base import BaseSchema, MainSchema
 from .cafe import CafeShortInfo
 from .constants import MAX_LENGTH
 
 
-class TableShortInfo(BaseModel):
+class TableShortInfo(BaseSchema):
     """Схема чтения мини-инфо о столе."""
 
     id: int
     description: str | None
     seat_number: int
+    # response_model_exclude_none=True добавить в эндпойнт
 
     model_config = ConfigDict(from_attributes=True, extra='forbid')
 
@@ -23,16 +24,16 @@ class TableInfo(TableShortInfo, MainSchema):
     model_config = ConfigDict(from_attributes=True, extra='forbid')
 
 
-class TableCreate(BaseModel):
+class TableCreate(BaseSchema):
     """Схема создания стола."""
 
-    description: str | None = Field(max_length=MAX_LENGTH)
+    description: str | MISSING = Field(max_length=MAX_LENGTH, default=MISSING)
     seat_number: int
 
 
-class TableUpdate(BaseModel):
+class TableUpdate(BaseSchema):
     """Схема изменения стола."""
 
-    description: str | None | MISSING = MISSING
+    description: str | MISSING = MISSING
     seat_number: int | MISSING = MISSING
     is_active: bool | MISSING = MISSING

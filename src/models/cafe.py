@@ -26,10 +26,10 @@ class Cafe(Base):
     description: Mapped[str] = mapped_column(
         Text(),
         comment='Описание кафе',
-    )
+    )  # здесь поле не обязательное nullable = true
     photo_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID,
         ForeignKey('media.id', ondelete='SET NULL'),
         unique=True,
         comment='ID фотографии',
-    )
+    )  # здесь поле не обязательное nullable = true
