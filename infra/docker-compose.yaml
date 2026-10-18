@@ -31,5 +31,28 @@ services:
       retries: 5
     restart: unless-stopped
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    env_file:
+      - ./.env
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart: unless-stopped
+
+  celery_worker:
+    build: ../
+    entrypoint: []
+    command: celery -A core.celery_app worker --loglevel=info
+    env_file:
+      - ./.env
+    depends_on:
+      - rabbitmq
+      - db
+    restart: unless-stopped
+
 volumes:
   pgdata:

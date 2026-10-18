@@ -20,6 +20,25 @@ class Settings(BaseSettings):
     postgres_server: str = 'localhost'
     postgres_port: int = 5432
 
+    # Настройки RabbitMQ
+    rabbitmq_user: str = 'guest'
+    rabbitmq_password: str = 'guest'
+    rabbitmq_host: str = 'rabbitmq'
+    rabbitmq_port: int = 5672
+
+    # Настройки SMS
+    sms_api_key: str = ''
+    sms_sender: str = ''
+
+    # Настройки SMTP
+    smtp_host: str = ''
+    smtp_port: int = 587
+    smtp_user: str = ''
+    smtp_password: str = ''
+
+    # Настройки Telegram
+    telegram_bot_token: str = ''
+
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / '../infra/.env',
         env_file_encoding='utf-8',
@@ -32,6 +51,14 @@ class Settings(BaseSettings):
         return (
             f'postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}@'
             f'{self.postgres_server}:{self.postgres_port}/{self.postgres_db}'
+        )
+
+    @property
+    def rabbitmq_url(self) -> str:
+        """URL для подключения к RabbitMQ."""
+        return (
+            f'amqp://{self.rabbitmq_user}:{self.rabbitmq_password}'
+            f'@{self.rabbitmq_host}:{self.rabbitmq_port}//'
         )
 
 
