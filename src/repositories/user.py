@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.user import User
@@ -7,6 +7,22 @@ from repositories.base import CRUDBase
 
 class CRUDUser(CRUDBase[User]):
     """CRUD для пользователей."""
+
+    async def get_by_login(
+        self,
+        login: str,
+        session: AsyncSession,
+    ) -> User | None:
+        """Проверка логина."""
+        result = await session.execute(
+            select(User).where(
+                or_(
+                    User.email == login,
+                    User.phone == login,
+                ),
+            ),
+        )
+        return result.scalar_one_or_none()
 
     async def get_by_attribute(
         self,
@@ -30,7 +46,7 @@ class CRUDUser(CRUDBase[User]):
         result = await session.execute(
             select(User).where(
                 User.cafe_id == cafe_id,
-                User.role == "manager",
+                User.role == 'manager',
             ),
         )
         return list(result.scalars().all())

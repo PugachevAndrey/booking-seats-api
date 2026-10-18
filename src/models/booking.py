@@ -31,7 +31,7 @@ class Booking(Base):
     note: Mapped[str | None] = mapped_column(
         Text(),
         comment='Примечание',
-    )
+    )  # здесь поле не обязательное nullable = true
     status: Mapped[BookingStatus] = mapped_column(
         String(20),
         comment='Статус',

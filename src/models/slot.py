@@ -27,7 +27,7 @@ class Slot(Base):
     description: Mapped[str | None] = mapped_column(
         String(255),
         comment='Описание слота',
-    )
+    )  # здесь поле не обязательное nullable = true
 
     __table_args__ = (
         Index(
