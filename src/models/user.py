@@ -17,29 +17,30 @@ class User(Base):
         String(100),
         comment='Имя пользователя',
     )
-    email: Mapped[str] = mapped_column(
+    email: Mapped[str | None] = mapped_column(
         String(255),
         unique=True,
         comment='Эл. почта пользователя',
-    )  # здесь поле не обязательное nullable = true
-    phone: Mapped[str] = mapped_column(
+    )
+    phone: Mapped[str | None] = mapped_column(
         String(20),
         unique=True,
         comment='Телефон пользователя',
-    )  # здесь поле не обязательное nullable = true
-    tg_id: Mapped[str] = mapped_column(
+    )
+    tg_id: Mapped[str | None] = mapped_column(
         String(50),
         unique=True,
         comment='ID Телеграмма пользователя',
-    )  # здесь поле не обязательное nullable = true
+    )
     password_hash: Mapped[str] = mapped_column(
         String(255),
         comment='Хэш пароля пользователя',
     )
     role: Mapped[UserRole] = mapped_column(
         String(20),
+        default=UserRole.USER,
         comment='Роль пользователя',
-    )  # вот здесь по умолчанию наверно должен быть default=UserRole.USER
+    )
 
     @classmethod
     def hash_password(cls, password: str) -> str:

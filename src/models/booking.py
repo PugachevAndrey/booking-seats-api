@@ -28,7 +28,7 @@ class Booking(Base):
         Integer,
         comment='Количество гостей',
     )
-    note: Mapped[str] = mapped_column(
+    note: Mapped[str | None] = mapped_column(
         Text(),
         comment='Примечание',
     )  # здесь поле не обязательное nullable = true
