@@ -1,8 +1,8 @@
 from datetime import date
 
-from pydantic import MISSING, BaseModel, ConfigDict, Field
+from pydantic import MISSING, ConfigDict, Field
 
-from .base import MainSchema
+from .base import BaseSchema, MainSchema
 from .booking_tables_slot import BookingTableSlot, BookingTableSlotShortInfo
 from .cafe import CafeShortInfo
 from .constants import MIN_SYMBOL
@@ -25,22 +25,22 @@ class BookingInfo(MainSchema):
     model_config = ConfigDict(from_attributes=True, extra='forbid')
 
 
-class BookingCreate(BaseModel):
+class BookingCreate(BaseSchema):
     """Схема создания бронирования."""
 
     cafe_id: int
     tables_slots: list[BookingTableSlot]
     guest_number: int
-    note: str | None
+    note: str | None | MISSING = MISSING
     booking_date: date
 
 
-class BookingUpdate(BaseModel):
+class BookingUpdate(BaseSchema):
     """Схема изменения бронирования."""
 
     tables_slots: list[BookingTableSlot] | MISSING = Field(default=MISSING, min_length=MIN_SYMBOL)
     guest_number: int | MISSING = MISSING
-    note: str | None | MISSING = MISSING
+    note: str | MISSING = MISSING
     status: BookingStatus | MISSING = MISSING
     booking_date: date | MISSING = MISSING
     is_active: bool | MISSING = MISSING
