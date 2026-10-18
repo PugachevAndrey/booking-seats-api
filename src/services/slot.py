@@ -1,17 +1,17 @@
 from datetime import time
 from typing import Any
 
+from models.slot import Slot
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.slot import Slot
-
-from .access import ensure_cafe_access
-from core.errors import NotFoundError, ValidationError
 from validators import (
     validate_slot_description,
     validate_slot_time_range,
 )
+
+from .access import ensure_cafe_access
+from core.errors import NotFoundError, ValidationError
 
 SLOT_EDITABLE_FIELDS = frozenset(
     {'start_time', 'end_time', 'description'},

@@ -1,19 +1,19 @@
 from typing import Any
 
+from models.cafe_manager import CafeManager
+from models.user import User
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.cafe_manager import CafeManager
-from models.user import User
-
-from .access import ROLE_ADMIN, ROLES, ROLE_USER, ensure_admin, ensure_staff
-from core.errors import ConflictError, NotFoundError, ValidationError
 from validators import (
     ensure_text_not_blank,
     validate_role,
     validate_role_change,
     validate_user_fields,
 )
+
+from .access import ROLES, ROLE_ADMIN, ROLE_USER, ensure_admin, ensure_staff
+from core.errors import ConflictError, NotFoundError, ValidationError
 
 USER_EDITABLE_FIELDS = frozenset(
     {'username', 'email', 'phone', 'tg_id', 'password_hash', 'role'},

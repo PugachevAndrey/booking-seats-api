@@ -1,5 +1,4 @@
 from core.enums import UserRole
-
 from core.errors import PermissionDeniedError
 
 ROLE_ADMIN = UserRole.ADMIN.value

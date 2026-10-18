@@ -1,15 +1,20 @@
 from datetime import date
 from typing import Any
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from core.enums import BookingStatus
 from models.booking import Booking
 from models.booking_tables_slot import BookingTablesSlot
 from models.cafe import Cafe
 from models.slot import Slot
 from models.table import Table
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from validators import (
+    validate_booking_date,
+    validate_booking_guest_number,
+    validate_booking_note,
+    validate_booking_status,
+)
 
 from .access import (
     ROLE_ADMIN,
@@ -17,18 +22,13 @@ from .access import (
     ensure_owner_or_staff,
     is_staff,
 )
+from .user import get_user
+from core.enums import BookingStatus
 from core.errors import (
     ConflictError,
     NotFoundError,
     PermissionDeniedError,
     ValidationError,
-)
-from .user import get_user
-from validators import (
-    validate_booking_date,
-    validate_booking_guest_number,
-    validate_booking_note,
-    validate_booking_status,
 )
 
 BOOKING_EDITABLE_FIELDS = frozenset(
@@ -198,6 +198,51 @@ def _normalize_pairs(
     return pairs
 
 
+def _validate_status_change(
+    booking: Booking,
+    changes: dict[str, Any],
+    actor_role: str,
+) -> None:
+    """Проверяет смену статуса бронирования."""
+    if not is_staff(actor_role):
+        raise PermissionDeniedError(
+            'Менять статус бронирования может только персонал.',
+        )
+    validate_booking_status(changes['status'], BOOKING_STATUSES)
+    if (
+        changes['status'] == BookingStatus.COMPLETED.value
+        and booking.booking_date > date.today()
+    ):
+        raise ValidationError(
+            'Нельзя завершить бронь на будущую дату.',
+        )
+
+
+def _validate_changes(
+    booking: Booking,
+    changes: dict[str, Any],
+    actor_role: str,
+) -> None:
+    """Проверяет изменяемые поля бронирования."""
+    if 'status' in changes:
+        _validate_status_change(booking, changes, actor_role)
+    if 'booking_date' in changes:
+        validate_booking_date(changes['booking_date'])
+    if 'guest_number' in changes:
+        validate_booking_guest_number(changes['guest_number'])
+    if 'note' in changes:
+        validate_booking_note(changes['note'])
+
+
+def _apply_changes(
+    booking: Booking,
+    changes: dict[str, Any],
+) -> None:
+    """Применяет подготовленные изменения к модели."""
+    for field_name, value in changes.items():
+        setattr(booking, field_name, value)
+
+
 async def create_booking(
     session: AsyncSession,
     actor_id: int,
@@ -292,32 +337,13 @@ async def update_booking(
     if isinstance(status_value, BookingStatus):
         changes['status'] = status_value.value
 
-    if 'status' in changes:
-        if not is_staff(actor_role):
-            raise PermissionDeniedError(
-                'Менять статус бронирования может только персонал.',
-            )
-        validate_booking_status(changes['status'], BOOKING_STATUSES)
-        if (
-            changes['status'] == BookingStatus.COMPLETED.value
-            and booking.booking_date > date.today()
-        ):
-            raise ValidationError(
-                'Нельзя завершить бронь на будущую дату.',
-            )
-    if 'booking_date' in changes:
-        validate_booking_date(changes['booking_date'])
-    if 'guest_number' in changes:
-        validate_booking_guest_number(changes['guest_number'])
-    if 'note' in changes:
-        validate_booking_note(changes['note'])
+    _validate_changes(booking, changes, actor_role)
 
     new_date = changes.get('booking_date', booking.booking_date)
     if new_date != booking.booking_date:
         await _ensure_date_is_free(session, booking_id, new_date)
 
-    for field_name, value in changes.items():
-        setattr(booking, field_name, value)
+    _apply_changes(booking, changes)
 
     await session.flush()
     await session.refresh(booking)

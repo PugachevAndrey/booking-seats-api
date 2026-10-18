@@ -1,10 +1,14 @@
 import uuid
 from typing import Any
 
+from models.cafe import Cafe
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.cafe import Cafe
+from validators import (
+    validate_cafe_description,
+    validate_cafe_fields,
+)
 
 from .access import ensure_admin, ensure_cafe_access
 from .cafe_manager import (
@@ -12,10 +16,6 @@ from .cafe_manager import (
     sync_cafe_managers,
 )
 from core.errors import ConflictError, NotFoundError, ValidationError
-from validators import (
-    validate_cafe_description,
-    validate_cafe_fields,
-)
 
 CAFE_EDITABLE_FIELDS = frozenset(
     {'name', 'address', 'phone', 'description', 'photo_id'},
