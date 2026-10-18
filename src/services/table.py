@@ -1,9 +1,9 @@
 from typing import Any
 
-from models.table import Table
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from models.table import Table
 from validators import (
     validate_table_description,
     validate_table_seat_number,

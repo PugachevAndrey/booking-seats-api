@@ -1,10 +1,10 @@
 import uuid
 from typing import Any
 
-from models.cafe import Cafe
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from models.cafe import Cafe
 from validators import (
     validate_cafe_description,
     validate_cafe_fields,

@@ -1,10 +1,10 @@
 from datetime import time
 from typing import Any
 
-from models.slot import Slot
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from models.slot import Slot
 from validators import (
     validate_slot_description,
     validate_slot_time_range,

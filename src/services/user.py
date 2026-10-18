@@ -1,10 +1,10 @@
 from typing import Any
 
-from models.cafe_manager import CafeManager
-from models.user import User
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from models.cafe_manager import CafeManager
+from models.user import User
 from validators import (
     ensure_text_not_blank,
     validate_role,

@@ -1,14 +1,14 @@
 from datetime import date
 from typing import Any
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from models.booking import Booking
 from models.booking_tables_slot import BookingTablesSlot
 from models.cafe import Cafe
 from models.slot import Slot
 from models.table import Table
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from validators import (
     validate_booking_date,
     validate_booking_guest_number,
