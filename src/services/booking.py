@@ -1,11 +1,13 @@
-from datetime import datetime, time
+from datetime import date
 from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.enums import BookingStatus
 from models.booking import Booking
 from models.booking_tables_slot import BookingTablesSlot
+from models.cafe import Cafe
 from models.slot import Slot
 from models.table import Table
 
@@ -15,14 +17,38 @@ from .access import (
     ensure_owner_or_staff,
     is_staff,
 )
-from .errors import ConflictError, NotFoundError, ValidationError
+from .errors import (
+    ConflictError,
+    NotFoundError,
+    PermissionDeniedError,
+    ValidationError,
+)
+from .user import get_user
+from .validations import (
+    validate_booking_date,
+    validate_booking_guest_number,
+    validate_booking_note,
+    validate_booking_status,
+)
+
+BOOKING_EDITABLE_FIELDS = frozenset(
+    {'guest_number', 'note', 'status', 'booking_date'},
+)
+BOOKING_STATUSES = tuple(status.value for status in BookingStatus)
+BUYABLE_STATUSES = (
+    BookingStatus.BOOKING.value,
+    BookingStatus.COMPLETED.value,
+)
+SLOT_BUSY_MESSAGE = 'Стол занят в выбранном слоте на эту дату.'
 
 
 async def get_booking(session: AsyncSession, booking_id: int) -> Booking:
     """Возвращает активное бронирование по ID."""
     booking = await session.get(Booking, booking_id)
     if booking is None or not booking.is_active:
-        raise NotFoundError(f'Бронирование {booking_id} не найдено.')
+        raise NotFoundError(
+            f'Бронирование {booking_id} не найдено.',
+        )
     return booking
 
 
@@ -36,9 +62,13 @@ async def get_bookings(
     query = select(Booking).where(Booking.is_active.is_(True))
     if not is_staff(actor_role):
         query = query.where(Booking.user_id == actor_id)
-    elif actor_role != ROLE_ADMIN and actor_cafe_id is not None:
+    elif actor_role != ROLE_ADMIN:
+        if actor_cafe_id is None:
+            return []
         query = query.where(Booking.cafe_id == actor_cafe_id)
-    result = await session.execute(query.order_by(Booking.booking_date))
+    result = await session.execute(
+        query.order_by(Booking.booking_date),
+    )
     return list(result.scalars().all())
 
 
@@ -46,20 +76,22 @@ async def is_slot_busy(
     session: AsyncSession,
     table_id: int,
     slot_id: int,
-    booking_date: datetime,
+    booking_date: date,
     exclude_booking_id: int | None = None,
 ) -> bool:
     """Проверяет, занят ли стол в слоте на дату брони."""
-    day_start = datetime.combine(booking_date.date(), time.min)
-    day_end = datetime.combine(booking_date.date(), time.max)
     query = (
         select(BookingTablesSlot)
-        .join(Booking, Booking.id == BookingTablesSlot.booking_id)
+        .join(
+            Booking,
+            Booking.id == BookingTablesSlot.booking_id,
+        )
         .where(
             BookingTablesSlot.table_id == table_id,
             BookingTablesSlot.slot_id == slot_id,
             Booking.is_active.is_(True),
-            Booking.booking_date.between(day_start, day_end),
+            Booking.status.in_(BUYABLE_STATUSES),
+            Booking.booking_date == booking_date,
         )
     )
     if exclude_booking_id is not None:
@@ -68,17 +100,49 @@ async def is_slot_busy(
     return result.first() is not None
 
 
-async def _get_booking_link(
+async def _get_booking_links(
     session: AsyncSession,
     booking_id: int,
-) -> BookingTablesSlot | None:
-    """Возвращает связку стола и слота для брони."""
+) -> list[BookingTablesSlot]:
+    """Возвращает связки столов и слотов для брони."""
     result = await session.execute(
-        select(BookingTablesSlot).where(
-            BookingTablesSlot.booking_id == booking_id,
-        ),
+        select(BookingTablesSlot)
+        .where(BookingTablesSlot.booking_id == booking_id)
+        .order_by(BookingTablesSlot.id),
     )
-    return result.scalar_one_or_none()
+    return list(result.scalars().all())
+
+
+async def _ensure_date_is_free(
+    session: AsyncSession,
+    booking_id: int,
+    new_date: date,
+) -> None:
+    """Проверяет, что на новую дату все столы брони свободны."""
+    links = await _get_booking_links(session, booking_id)
+    if not links:
+        raise ValidationError(
+            'У бронирования не найдена связка стола и слота.',
+        )
+    for link in links:
+        if await is_slot_busy(
+            session,
+            link.table_id,
+            link.slot_id,
+            new_date,
+            exclude_booking_id=booking_id,
+        ):
+            raise ConflictError(SLOT_BUSY_MESSAGE)
+
+
+async def _ensure_cafe_active(
+    session: AsyncSession,
+    cafe_id: int,
+) -> None:
+    """Проверяет, что кафе существует и активно."""
+    cafe = await session.get(Cafe, cafe_id)
+    if cafe is None or not cafe.is_active:
+        raise NotFoundError(f'Кафе {cafe_id} не найдено.')
 
 
 async def _ensure_table_and_slot_in_cafe(
@@ -88,17 +152,50 @@ async def _ensure_table_and_slot_in_cafe(
     cafe_id: int,
 ) -> None:
     """Проверяет, что стол и слот принадлежат кафе."""
+    cafe = await session.get(Cafe, cafe_id)
+    if cafe is None or not cafe.is_active:
+        raise NotFoundError(f'Кафе {cafe_id} не найдено.')
+
     table = await session.get(Table, table_id)
     if table is None or not table.is_active:
         raise NotFoundError(f'Стол {table_id} не найден.')
     if table.cafe_id != cafe_id:
-        raise ValidationError('Стол не принадлежит указанному кафе.')
+        raise ValidationError(
+            'Стол не принадлежит указанному кафе.',
+        )
 
     slot = await session.get(Slot, slot_id)
     if slot is None or not slot.is_active:
         raise NotFoundError(f'Слот {slot_id} не найден.')
     if slot.cafe_id != cafe_id:
-        raise ValidationError('Слот не принадлежит указанному кафе.')
+        raise ValidationError(
+            'Слот не принадлежит указанному кафе.',
+        )
+
+
+def _normalize_pairs(
+    tables_slots: Any,
+) -> list[tuple[int, int]]:
+    """Приводит пары стол/слот из схемы к списку кортежей."""
+    pairs: list[tuple[int, int]] = []
+    seen: set[tuple[int, int]] = set()
+    for item in tables_slots or []:
+        if isinstance(item, dict):
+            table_id = item.get('table_id')
+            slot_id = item.get('slot_id')
+        else:
+            table_id = getattr(item, 'table_id', None)
+            slot_id = getattr(item, 'slot_id', None)
+        if table_id is None or slot_id is None:
+            raise ValidationError(
+                'Для бронирования нужны table_id и slot_id.',
+            )
+        pair = (int(table_id), int(slot_id))
+        if pair in seen:
+            raise ValidationError('Стол и слот продублированы.')
+        seen.add(pair)
+        pairs.append(pair)
+    return pairs
 
 
 async def create_booking(
@@ -109,39 +206,58 @@ async def create_booking(
     user_id: int,
     cafe_id: int,
     guest_number: int,
-    note: str,
-    status: str,
-    booking_date: datetime,
-    table_id: int,
-    slot_id: int,
+    note: str | None,
+    booking_date: date,
+    tables_slots: Any,
 ) -> Booking:
-    """Создаёт бронирование и связывает стол со слотом."""
+    """Создаёт бронирование и связывает столы со слотами."""
     if is_staff(actor_role):
         ensure_cafe_access(actor_role, actor_cafe_id, cafe_id)
     elif user_id != actor_id:
-        raise ValidationError('Клиент может бронировать только для себя.')
+        raise ValidationError(
+            'Клиент может бронировать только для себя.',
+        )
 
-    await _ensure_table_and_slot_in_cafe(session, table_id, slot_id, cafe_id)
-    if await is_slot_busy(session, table_id, slot_id, booking_date):
-        raise ConflictError('Стол занят в выбранном слоте на эту дату.')
+    await get_user(session, user_id)
+
+    validate_booking_date(booking_date)
+    validate_booking_guest_number(guest_number)
+    validate_booking_note(note)
+
+    pairs = _normalize_pairs(tables_slots)
+    if not pairs:
+        raise ValidationError('Нужно указать хотя бы один стол и слот.')
+
+    await _ensure_cafe_active(session, cafe_id)
+
+    for table_id, slot_id in pairs:
+        await _ensure_table_and_slot_in_cafe(
+            session, table_id, slot_id, cafe_id,
+        )
+        if await is_slot_busy(
+            session, table_id, slot_id, booking_date,
+        ):
+            raise ConflictError(SLOT_BUSY_MESSAGE)
 
     booking = Booking(
         user_id=user_id,
         cafe_id=cafe_id,
         guest_number=guest_number,
         note=note,
-        status=status,
+        status=BookingStatus.BOOKING.value,
         booking_date=booking_date,
     )
     session.add(booking)
     await session.flush()
 
-    link = BookingTablesSlot(
-        booking_id=booking.id,
-        table_id=table_id,
-        slot_id=slot_id,
-    )
-    session.add(link)
+    for table_id, slot_id in pairs:
+        session.add(
+            BookingTablesSlot(
+                booking_id=booking.id,
+                table_id=table_id,
+                slot_id=slot_id,
+            ),
+        )
     await session.flush()
     await session.refresh(booking)
     return booking
@@ -165,22 +281,44 @@ async def update_booking(
         booking.cafe_id,
     )
 
-    allowed = {'guest_number', 'note', 'status', 'booking_date'}
-    new_date = fields.get('booking_date', booking.booking_date)
-    if new_date != booking.booking_date:
-        link = await _get_booking_link(session, booking_id)
-        if link is not None and await is_slot_busy(
-            session,
-            link.table_id,
-            link.slot_id,
-            new_date,
-            exclude_booking_id=booking_id,
-        ):
-            raise ConflictError('Стол занят в выбранном слоте на эту дату.')
+    unknown = set(fields) - BOOKING_EDITABLE_FIELDS
+    if unknown:
+        raise ValidationError(
+            f'Поля нельзя изменить: {", ".join(sorted(unknown))}.',
+        )
 
-    for name, value in fields.items():
-        if name in allowed:
-            setattr(booking, name, value)
+    changes = dict(fields)
+    status_value = changes.get('status')
+    if isinstance(status_value, BookingStatus):
+        changes['status'] = status_value.value
+
+    if 'status' in changes:
+        if not is_staff(actor_role):
+            raise PermissionDeniedError(
+                'Менять статус бронирования может только персонал.',
+            )
+        validate_booking_status(changes['status'], BOOKING_STATUSES)
+        if (
+            changes['status'] == BookingStatus.COMPLETED.value
+            and booking.booking_date > date.today()
+        ):
+            raise ValidationError(
+                'Нельзя завершить бронь на будущую дату.',
+            )
+    if 'booking_date' in changes:
+        validate_booking_date(changes['booking_date'])
+    if 'guest_number' in changes:
+        validate_booking_guest_number(changes['guest_number'])
+    if 'note' in changes:
+        validate_booking_note(changes['note'])
+
+    new_date = changes.get('booking_date', booking.booking_date)
+    if new_date != booking.booking_date:
+        await _ensure_date_is_free(session, booking_id, new_date)
+
+    for field_name, value in changes.items():
+        setattr(booking, field_name, value)
+
     await session.flush()
     await session.refresh(booking)
     return booking
@@ -203,4 +341,6 @@ async def delete_booking(
         booking.cafe_id,
     )
     booking.is_active = False
+    if booking.status != BookingStatus.COMPLETED.value:
+        booking.status = BookingStatus.CANCELLED.value
     await session.flush()

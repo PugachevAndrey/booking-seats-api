@@ -1,9 +1,11 @@
+from core.enums import UserRole
+
 from .errors import PermissionDeniedError
 
-ROLE_ADMIN = 'admin'
-ROLE_MANAGER = 'manager'
-ROLE_USER = 'user'
-ROLES = (ROLE_ADMIN, ROLE_MANAGER, ROLE_USER)
+ROLE_ADMIN = UserRole.ADMIN.value
+ROLE_MANAGER = UserRole.MANAGER.value
+ROLE_USER = UserRole.USER.value
+ROLES = tuple(role.value for role in UserRole)
 
 
 def is_admin(role: str) -> bool:
@@ -36,14 +38,14 @@ def ensure_admin(role: str) -> None:
 
 
 def ensure_cafe_access(
-    role: str,
+    actor_role: str,
     actor_cafe_id: int | None,
     cafe_id: int,
 ) -> None:
-    """Админ — любое кафе, менеджер — только своё."""
-    if is_admin(role):
+    """Проверяет доступ к кафе: админ — любое, менеджер — своё."""
+    if is_admin(actor_role):
         return
-    if is_manager(role) and actor_cafe_id == cafe_id:
+    if is_manager(actor_role) and actor_cafe_id == cafe_id:
         return
     raise PermissionDeniedError('Нет прав на управление этим кафе.')
 
@@ -51,15 +53,17 @@ def ensure_cafe_access(
 def ensure_owner_or_staff(
     owner_id: int,
     actor_id: int,
-    role: str,
+    actor_role: str,
     actor_cafe_id: int | None,
     cafe_id: int,
 ) -> None:
-    """Владелец записи, менеджер своего кафе или админ."""
-    if is_admin(role):
-        return
+    """Требует владельца, менеджера кафе или админа."""
     if owner_id == actor_id:
         return
-    if is_manager(role) and actor_cafe_id == cafe_id:
+    if is_admin(actor_role):
         return
-    raise PermissionDeniedError('Недостаточно прав.')
+    if is_manager(actor_role) and actor_cafe_id == cafe_id:
+        return
+    raise PermissionDeniedError(
+        'Нет прав на изменение этой записи.',
+    )

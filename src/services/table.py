@@ -6,7 +6,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.table import Table
 
 from .access import ensure_cafe_access
-from .errors import NotFoundError
+from .errors import NotFoundError, ValidationError
+from .validations import (
+    validate_table_description,
+    validate_table_seat_number,
+)
+
+TABLE_EDITABLE_FIELDS = frozenset({'description', 'seat_number'})
 
 
 async def get_table(session: AsyncSession, table_id: int) -> Table:
@@ -34,11 +40,14 @@ async def create_table(
     actor_role: str,
     actor_cafe_id: int | None,
     cafe_id: int,
-    description: str,
+    description: str | None,
     seat_number: int,
 ) -> Table:
     """Создаёт новый стол."""
     ensure_cafe_access(actor_role, actor_cafe_id, cafe_id)
+    validate_table_seat_number(seat_number)
+    validate_table_description(description)
+
     table = Table(
         cafe_id=cafe_id,
         description=description,
@@ -57,13 +66,25 @@ async def update_table(
     table_id: int,
     **fields: Any,
 ) -> Table:
-    """Обновляет поля стола с проверкой прав."""
+    """Обновляет поля стола. Перенос в другое кафе запрещён."""
     table = await get_table(session, table_id)
     ensure_cafe_access(actor_role, actor_cafe_id, table.cafe_id)
-    allowed = {'cafe_id', 'description', 'seat_number'}
-    for name, value in fields.items():
-        if name in allowed:
-            setattr(table, name, value)
+
+    unknown = set(fields) - TABLE_EDITABLE_FIELDS
+    if unknown:
+        raise ValidationError(
+            f'Поля нельзя изменить: {", ".join(sorted(unknown))}.',
+        )
+
+    changes = dict(fields)
+    if 'description' in changes:
+        validate_table_description(changes['description'])
+    if 'seat_number' in changes:
+        validate_table_seat_number(changes['seat_number'])
+
+    for field_name, value in changes.items():
+        setattr(table, field_name, value)
+
     await session.flush()
     await session.refresh(table)
     return table

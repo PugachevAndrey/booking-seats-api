@@ -5,6 +5,7 @@ class DomainError(Exception):
     """Базовое доменное исключение."""
 
     default_message = 'Доменная ошибка.'
+    code = 'DOMAIN_ERROR'
     status_code = 400
 
     def __init__(self, message: str | None = None) -> None:
@@ -17,6 +18,7 @@ class NotFoundError(DomainError):
     """Объект не найден."""
 
     default_message = 'Объект не найден.'
+    code = 'NOT_FOUND'
     status_code = 404
 
 
@@ -24,6 +26,7 @@ class ConflictError(DomainError):
     """Конфликт данных."""
 
     default_message = 'Конфликт данных.'
+    code = 'CONFLICT'
     status_code = 409
 
 
@@ -31,6 +34,7 @@ class ValidationError(DomainError):
     """Ошибка валидации на уровне домена."""
 
     default_message = 'Некорректные данные.'
+    code = 'VALIDATION_ERROR'
     status_code = 422
 
 
@@ -38,13 +42,13 @@ class PermissionDeniedError(DomainError):
     """Недостаточно прав."""
 
     default_message = 'Недостаточно прав.'
+    code = 'PERMISSION_DENIED'
     status_code = 403
 
 
 def error_payload(error: DomainError) -> dict[str, Any]:
     """Сериализует доменную ошибку в словарь ответа."""
     return {
-        'detail': error.message,
-        'type': type(error).__name__,
-        'status_code': error.status_code,
+        'code': error.code,
+        'message': error.message,
     }
