@@ -1,6 +1,10 @@
 __pycache__/
 *.py[cod]
 *.egg-info/
+*.egg-info
+.eggs/
+build/
+dist/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
@@ -12,6 +16,3 @@ env/
 *.sqlite3
 .env
 _save06/
-
-# не коммитим в 06 (идут в 07 / другие ветки)
-src/validators/
