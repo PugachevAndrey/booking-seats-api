@@ -33,3 +33,4 @@ class Table(Base):
             name='ck_tables_seat_number_is_positive',
         ),
     )
+    
