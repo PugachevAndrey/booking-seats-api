@@ -24,7 +24,7 @@ class Slot(Base):
         Time,
         comment='Время завершения слота',
     )
-    description: Mapped[str] = mapped_column(
+    description: Mapped[str | None] = mapped_column(
         String(255),
         comment='Описание слота',
     )

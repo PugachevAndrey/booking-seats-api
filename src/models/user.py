@@ -17,17 +17,17 @@ class User(Base):
         String(100),
         comment='Имя пользователя',
     )
-    email: Mapped[str] = mapped_column(
+    email: Mapped[str | None] = mapped_column(
         String(255),
         unique=True,
         comment='Эл. почта пользователя',
     )
-    phone: Mapped[str] = mapped_column(
+    phone: Mapped[str | None] = mapped_column(
         String(20),
         unique=True,
         comment='Телефон пользователя',
     )
-    tg_id: Mapped[str] = mapped_column(
+    tg_id: Mapped[str | None] = mapped_column(
         String(50),
         unique=True,
         comment='ID Телеграмма пользователя',
@@ -38,6 +38,7 @@ class User(Base):
     )
     role: Mapped[UserRole] = mapped_column(
         String(20),
+        default=UserRole.USER,
         comment='Роль пользователя',
     )
 

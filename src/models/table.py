@@ -14,7 +14,7 @@ class Table(Base):
         ForeignKey('cafes.id'),
         comment='ID кафе',
     )
-    description: Mapped[str] = mapped_column(
+    description: Mapped[str | None] = mapped_column(
         String(255),
         comment='Описание стола',
     )

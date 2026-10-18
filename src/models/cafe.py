@@ -23,7 +23,7 @@ class Cafe(Base):
         String(20),
         comment='Телефон кафе',
     )
-    description: Mapped[str] = mapped_column(
+    description: Mapped[str | None] = mapped_column(
         Text(),
         comment='Описание кафе',
     )
