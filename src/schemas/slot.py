@@ -1,39 +1,52 @@
-from datetime import datetime, time
-from typing import Optional
+from datetime import time
+from typing import Self
 
-from pydantic import BaseModel
+from pydantic import MISSING, ConfigDict, Field, model_validator
+
+from .base import BaseSchema, MainSchema
+from .cafe import CafeShortInfo
+from .constants import MAX_LENGTH
 
 
-class SlotBase(BaseModel):
-    """Базовая схема слота."""
+class TimeSlotShortInfo(BaseSchema):
+    """Схема чтения мини-инфо о временном слоте."""
+
+    id: int
+    start_time: time
+    end_time: time
+    description: str | None
+    # response_model_exclude_none=True добавить в эндпойнт
+
+    model_config = ConfigDict(from_attributes=True, extra='forbid')
+
+
+class TimeSlotInfo(TimeSlotShortInfo, MainSchema):
+    """Схема чтения инфо о временном слоте."""
+
+    cafe: CafeShortInfo
+
+    model_config = ConfigDict(from_attributes=True, extra='forbid')
+
+
+class TimeSlotCreate(BaseSchema):
+    """Схема создания временного слота."""
 
     start_time: time
     end_time: time
-    description: Optional[str] = None
+    description: str | MISSING = Field(max_length=MAX_LENGTH, default=MISSING)
+
+    @model_validator(mode='after')
+    def validate_time(self) -> Self:
+        """Проверка что время окончания не раньше времени начала."""
+        if self.end_time <= self.start_time:
+            raise ValueError('Время окончания бронирования должно быть позже времени начала.')
+        return self
 
 
-class SlotCreate(SlotBase):
-    """Создание слота."""
+class TimeSlotUpdate(BaseSchema):
+    """Схема изменения временного слота."""
 
-    pass
-
-
-class SlotUpdate(BaseModel):
-    """Обновление слота."""
-
-    start_time: Optional[time] = None
-    end_time: Optional[time] = None
-    description: Optional[str] = None
-    is_active: Optional[bool] = None
-
-
-class SlotInfo(SlotBase):
-    """Информация о слоте."""
-
-    id: int
-    cafe: dict
-    is_active: bool
-    created_at: datetime
-    updated_at: datetime
-
-    model_config = {'from_attributes': True}
+    start_time: time | MISSING = MISSING
+    end_time: time | MISSING = MISSING
+    description: str | MISSING = Field(max_length=MAX_LENGTH, default=MISSING)
+    is_active: bool | MISSING = MISSING

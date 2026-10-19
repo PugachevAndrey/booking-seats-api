@@ -1,37 +1,39 @@
-from datetime import datetime
-from typing import Optional
+from pydantic import MISSING, ConfigDict, Field
 
-from pydantic import BaseModel
+from .base import BaseSchema, MainSchema
+from .cafe import CafeShortInfo
+from .constants import MAX_LENGTH
 
 
-class TableBase(BaseModel):
-    """Базовая схема столика."""
+class TableShortInfo(BaseSchema):
+    """Схема чтения мини-инфо о столе."""
 
-    description: Optional[str] = None
+    id: int
+    description: str | None
+    seat_number: int
+    # response_model_exclude_none=True добавить в эндпойнт
+
+    model_config = ConfigDict(from_attributes=True, extra='forbid')
+
+
+class TableInfo(TableShortInfo, MainSchema):
+    """Схема чтения инфо о столе."""
+
+    cafe: CafeShortInfo
+
+    model_config = ConfigDict(from_attributes=True, extra='forbid')
+
+
+class TableCreate(BaseSchema):
+    """Схема создания стола."""
+
+    description: str | MISSING = Field(max_length=MAX_LENGTH, default=MISSING)
     seat_number: int
 
 
-class TableCreate(TableBase):
-    """Создание столика."""
+class TableUpdate(BaseSchema):
+    """Схема изменения стола."""
 
-    pass
-
-
-class TableUpdate(BaseModel):
-    """Обновление столика."""
-
-    description: Optional[str] = None
-    seat_number: Optional[int] = None
-    is_active: Optional[bool] = None
-
-
-class TableInfo(TableBase):
-    """Информация о столике."""
-
-    id: int
-    cafe: dict
-    is_active: bool
-    created_at: datetime
-    updated_at: datetime
-
-    model_config = {'from_attributes': True}
+    description: str | MISSING = MISSING
+    seat_number: int | MISSING = MISSING
+    is_active: bool | MISSING = MISSING

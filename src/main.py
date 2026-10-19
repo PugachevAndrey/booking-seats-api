@@ -15,23 +15,24 @@ from api.v1 import (
     tables,
     users,
 )
-
 from core.settings import settings
+from services.exception_handlers import register_exception_handlers
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator:
     """Жизненный цикл приложения FastAPI."""
-    # TODO: Добавить код, выполняемый при старте приложения
     yield
-    # TODO: Добавить код, выполняемый при остановке приложения
 
 
 app = FastAPI(
     title=settings.title,
     version=settings.version,
     description=settings.description,
+    lifespan=lifespan,
 )
+
+register_exception_handlers(app)
 
 app.include_router(auth.router, prefix='/api/v1')
 app.include_router(users.router, prefix='/api/v1')

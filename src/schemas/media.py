@@ -1,9 +1,9 @@
-import uuid
+from uuid import UUID
 
-from pydantic import BaseModel
+from src.schemas.base import BaseSchema
 
 
-class MediaInfo(BaseModel):
-    """Информация о медиа."""
+class MediaInfo(BaseSchema):
+    """Схема инфо media_id."""
 
-    media_id: uuid.UUID
+    media_id: UUID

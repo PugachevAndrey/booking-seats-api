@@ -1,52 +1,46 @@
-from datetime import date, datetime
-from typing import Optional
+from datetime import date
 
-from pydantic import BaseModel
+from pydantic import MISSING, ConfigDict, Field
 
-from core.enums import BookingStatus
-
-
-class BookingTableSlot(BaseModel):
-    """Бронирования столика в слот."""
-
-    table_id: int
-    slot_id: int
+from .base import BaseSchema, MainSchema
+from .booking_tables_slot import BookingTableSlot, BookingTableSlotShortInfo
+from .cafe import CafeShortInfo
+from .constants import MIN_SYMBOL
+from .user import UserShortInfo
+from src.core.enums import BookingStatus
 
 
-class BookingCreate(BaseModel):
-    """Создание бронирования."""
+class BookingInfo(MainSchema):
+    """Схема чтения бронирования."""
+
+    id: int
+    user: UserShortInfo
+    cafe: CafeShortInfo
+    tables_slots: BookingTableSlotShortInfo
+    guest_number: int
+    note: str | None
+    status: BookingStatus
+    booking_date: date
+
+    model_config = ConfigDict(from_attributes=True, extra='forbid')
+
+
+class BookingCreate(BaseSchema):
+    """Схема создания бронирования."""
 
     cafe_id: int
     tables_slots: list[BookingTableSlot]
     guest_number: int
-    note: Optional[str] = None
+    note: str | None | MISSING = MISSING
     booking_date: date
 
 
-class BookingUpdate(BaseModel):
-    """Обновление бронирования."""
+class BookingUpdate(BaseSchema):
+    """Схема изменения бронирования."""
 
-    tables_slots: Optional[list[BookingTableSlot]] = None
-    guest_number: Optional[int] = None
-    note: Optional[str] = None
-    status: Optional[BookingStatus] = None
-    booking_date: Optional[date] = None
-    is_active: Optional[bool] = None
-
-
-class BookingInfo(BaseModel):
-    """Информация о бронировании."""
-
-    id: int
-    user: dict
-    cafe: dict
-    tables_slots: list[dict]
-    guest_number: int
-    note: Optional[str]
-    status: BookingStatus
-    booking_date: date
-    is_active: bool
-    created_at: datetime
-    updated_at: datetime
-
-    model_config = {'from_attributes': True}
+    tables_slots: list[BookingTableSlot] | MISSING = Field(default=MISSING, min_length=MIN_SYMBOL)
+    guest_number: int | MISSING = MISSING
+    note: str | MISSING = MISSING
+    status: BookingStatus | MISSING = MISSING
+    booking_date: date | MISSING = MISSING
+    is_active: bool | MISSING = MISSING
