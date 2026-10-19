@@ -4,9 +4,19 @@ from typing import AsyncGenerator
 import uvicorn
 from fastapi import FastAPI
 
-from services.exception_handlers import register_exception_handlers
-
+from api.v1 import (
+    actions,
+    auth,
+    booking,
+    cafes,
+    dishes,
+    media,
+    slots,
+    tables,
+    users,
+)
 from core.settings import settings
+from services.exception_handlers import register_exception_handlers
 
 
 @asynccontextmanager
@@ -23,6 +33,16 @@ app = FastAPI(
 )
 
 register_exception_handlers(app)
+
+app.include_router(auth.router, prefix='/api/v1')
+app.include_router(users.router, prefix='/api/v1')
+app.include_router(cafes.router, prefix='/api/v1')
+app.include_router(tables.router, prefix='/api/v1')
+app.include_router(slots.router, prefix='/api/v1')
+app.include_router(booking.router, prefix='/api/v1')
+app.include_router(dishes.router, prefix='/api/v1')
+app.include_router(actions.router, prefix='/api/v1')
+app.include_router(media.router, prefix='/api/v1')
 
 
 @app.get(
