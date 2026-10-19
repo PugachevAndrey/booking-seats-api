@@ -3,9 +3,8 @@ from repositories.base import CRUDBase
 
 
 class CRUDMedia(CRUDBase[Media]):
-    """Урезанный CRUD: по матрице прав доступны только Crec и Rrec."""
+    """CRUD для медиа.
 
-    pass
-
-
-media_crud = CRUDMedia(Media)
+    Метод update не поддерживается по матрице прав
+    (для медиа доступны только Crec и Rrec).
+    """

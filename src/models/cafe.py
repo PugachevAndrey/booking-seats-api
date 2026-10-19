@@ -23,13 +23,13 @@ class Cafe(Base):
         String(20),
         comment='Телефон кафе',
     )
-    description: Mapped[str] = mapped_column(
+    description: Mapped[str | None] = mapped_column(
         Text(),
         comment='Описание кафе',
-    )
-    photo_id: Mapped[uuid.UUID] = mapped_column(
+    )  # здесь поле не обязательное nullable = true
+    photo_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID,
-        ForeignKey('media.id', ondelete='CASCADE'),
+        ForeignKey('media.id', ondelete='SET NULL'),
         unique=True,
         comment='ID фотографии',
-    )
+    )  # здесь поле не обязательное nullable = true

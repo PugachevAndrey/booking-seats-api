@@ -1,7 +1,10 @@
 """Задачи для уведомлений."""
+import asyncio
 import logging
 
 from core.celery_app import celery_app
+from core.db import get_session
+from services.booking import get_booking
 
 logger = logging.getLogger(__name__)
 
@@ -30,23 +33,63 @@ def send_telegram(tg_id: str, text: str) -> str:
     return f'Telegram sent to {tg_id}'
 
 
+def _run(coro):
+    """Запускает async-корутину в sync-контексте Celery."""
+    return asyncio.run(coro)
+
+
 @celery_app.task
 def notify_booking_created(booking_id: int) -> str:
-    """Уведомление о создании брони (SMS + email + Telegram)."""
-    logger.info('Booking %s created notification', booking_id)
-    # TODO: получить бронь из БД, отправить SMS/email/Telegram
+    """Уведомление о создании брони."""
+    async def _notify():
+        async with get_session() as session:
+            booking = await get_booking(session, booking_id)
+            logger.info(
+                'Booking %s created: user_id=%s, cafe_id=%s, date=%s',
+                booking.id,
+                booking.user_id,
+                booking.cafe_id,
+                booking.booking_date,
+            )
+            # TODO: отправить SMS/email/Telegram
+            return booking.id
+
+    booking_id = _run(_notify())
     return f'Booking {booking_id} created notification sent'
 
 
 @celery_app.task
 def notify_booking_updated(booking_id: int) -> str:
     """Уведомление об изменении брони."""
-    logger.info('Booking %s updated notification', booking_id)
+    async def _notify():
+        async with get_session() as session:
+            booking = await get_booking(session, booking_id)
+            logger.info(
+                'Booking %s updated: status=%s',
+                booking.id,
+                booking.status,
+            )
+            # TODO: отправить уведомление
+            return booking.id
+
+    booking_id = _run(_notify())
     return f'Booking {booking_id} updated notification sent'
 
 
 @celery_app.task
 def notify_booking_reminder(booking_id: int) -> str:
     """Напоминание клиенту о брони."""
-    logger.info('Booking %s reminder', booking_id)
+    async def _notify():
+        async with get_session() as session:
+            booking = await get_booking(session, booking_id)
+            logger.info(
+                'Booking %s reminder: user_id=%s, date=%s',
+                booking.id,
+                booking.user_id,
+                booking.booking_date,
+            )
+            # TODO: отправить напоминание
+            return booking.id
+
+    booking_id = _run(_notify())
     return f'Booking {booking_id} reminder sent'
