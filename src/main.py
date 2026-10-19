@@ -4,22 +4,25 @@ from typing import AsyncGenerator
 import uvicorn
 from fastapi import FastAPI
 
+from services.exception_handlers import register_exception_handlers
+
 from core.settings import settings
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator:
     """Жизненный цикл приложения FastAPI."""
-    # TODO: Добавить код, выполняемый при старте приложения
     yield
-    # TODO: Добавить код, выполняемый при остановке приложения
 
 
 app = FastAPI(
     title=settings.title,
     version=settings.version,
     description=settings.description,
+    lifespan=lifespan,
 )
+
+register_exception_handlers(app)
 
 
 @app.get(

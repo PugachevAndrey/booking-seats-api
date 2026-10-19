@@ -15,4 +15,7 @@ env/
 *.db
 *.sqlite3
 .env
-_save06/
+uv.lock
+
+.venv312/
+requirements.txt
