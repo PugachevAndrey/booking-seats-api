@@ -3,14 +3,12 @@
 import asyncio
 import logging
 from collections.abc import Coroutine
-from typing import Any, TypeVar
+from typing import Any
 
 from services.booking import get_booking
 
 from core.celery_app import celery_app
 from core.db import get_session
-
-T = TypeVar('T')
 
 logger = logging.getLogger(__name__)
 
