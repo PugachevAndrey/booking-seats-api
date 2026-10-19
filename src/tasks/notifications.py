@@ -1,10 +1,16 @@
 """Задачи для уведомлений."""
+
 import asyncio
 import logging
+from collections.abc import Coroutine
+from typing import Any, TypeVar
+
+from services.booking import get_booking
 
 from core.celery_app import celery_app
 from core.db import get_session
-from services.booking import get_booking
+
+T = TypeVar('T')
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +39,7 @@ def send_telegram(tg_id: str, text: str) -> str:
     return f'Telegram sent to {tg_id}'
 
 
-def _run(coro):
+def _run[T](coro: Coroutine[Any, Any, T]) -> T:
     """Запускает async-корутину в sync-контексте Celery."""
     return asyncio.run(coro)
 
@@ -41,7 +47,8 @@ def _run(coro):
 @celery_app.task
 def notify_booking_created(booking_id: int) -> str:
     """Уведомление о создании брони."""
-    async def _notify():
+
+    async def _notify() -> int:
         async with get_session() as session:
             booking = await get_booking(session, booking_id)
             logger.info(
@@ -61,7 +68,8 @@ def notify_booking_created(booking_id: int) -> str:
 @celery_app.task
 def notify_booking_updated(booking_id: int) -> str:
     """Уведомление об изменении брони."""
-    async def _notify():
+
+    async def _notify() -> int:
         async with get_session() as session:
             booking = await get_booking(session, booking_id)
             logger.info(
@@ -79,7 +87,8 @@ def notify_booking_updated(booking_id: int) -> str:
 @celery_app.task
 def notify_booking_reminder(booking_id: int) -> str:
     """Напоминание клиенту о брони."""
-    async def _notify():
+
+    async def _notify() -> int:
         async with get_session() as session:
             booking = await get_booking(session, booking_id)
             logger.info(

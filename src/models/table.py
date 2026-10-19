@@ -17,7 +17,7 @@ class Table(Base):
     description: Mapped[str | None] = mapped_column(
         String(255),
         comment='Описание стола',
-    )  # здесь поле не обязательное nullable = true
+    )
     seat_number: Mapped[int] = mapped_column(
         Integer,
         comment='Номер сидения',
