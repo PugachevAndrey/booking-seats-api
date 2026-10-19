@@ -1,13 +1,19 @@
-# Python-generated files
 __pycache__/
-*.py[oc]
+*.py[cod]
+*.egg-info/
+*.egg-info
+.eggs/
 build/
 dist/
-wheels/
-*.egg-info
-
-# Virtual environments
-.venv
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+.venv*/
+venv/
+env/
+*.db
+*.sqlite3
 .env
 uv.lock
 

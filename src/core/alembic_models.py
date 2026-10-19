@@ -10,13 +10,13 @@ from models.user import User
 from core.base_model import Base
 
 __all__ = [
-    Base,
-    User,
-    Cafe,
-    CafeManager,
-    Table,
-    Slot,
-    Booking,
-    BookingTablesSlot,
-    Media,
+    'Base',
+    'Booking',
+    'BookingTablesSlot',
+    'Cafe',
+    'CafeManager',
+    'Media',
+    'Slot',
+    'Table',
+    'User',
 ]
