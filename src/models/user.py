@@ -7,8 +7,6 @@ from sqlalchemy.orm import Mapped, mapped_column
 from core.base_model import Base
 from core.enums import UserRole
 
-_password_hash = PasswordHash.recommended()
-
 
 class User(Base):
     """Модель пользователя."""
@@ -34,6 +32,7 @@ class User(Base):
     )
     password_hash: Mapped[str] = mapped_column(
         String(255),
+        default=PasswordHash.recommended,
         comment='Хэш пароля пользователя',
     )
     role: Mapped[UserRole] = mapped_column(
@@ -41,16 +40,3 @@ class User(Base):
         default=UserRole.USER,
         comment='Роль пользователя',
     )
-
-    @classmethod
-    def hash_password(cls, password: str) -> str:
-        """Хэширует пароль."""
-        return _password_hash.hash(password)
-
-    def set_password(self, password: str) -> None:
-        """Хеширует и сохраняет пароль."""
-        self.password_hash = self.hash_password(password)
-
-    def check_password(self, password: str) -> bool:
-        """Проверяет пароль и сохранённый хэш."""
-        return _password_hash.verify(password, self.password_hash)
