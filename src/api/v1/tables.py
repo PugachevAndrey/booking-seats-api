@@ -1,44 +1,103 @@
-from datetime import datetime, timezone
+from typing import Annotated
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.v1.deps import get_current_staff, get_current_user, get_db
+from models.table import Table
+from models.user import User
 from schemas.table import TableCreate, TableInfo, TableUpdate
+from services.cafe_manager import get_manager_cafe_id
+from services.table import (
+    create_table,
+    get_table,
+    get_tables,
+    update_table,
+)
+
+from core.errors import NotFoundError
 
 router = APIRouter(prefix='/cafes/{cafe_id}/tables', tags=['Столы'])
 
 
-def fake_table(id: int, cafe_id: int) -> dict:  # noqa: A002
-    """Временная функция для информации о столике для заглушек."""
-    return {
-        'id': id,
-        'cafe': {'id': cafe_id, 'name': f'Кафе {cafe_id}'},
-        'description': 'У окна',
-        'seat_number': 4,
-        'is_active': True,
-        'created_at': datetime.now(timezone.utc),
-        'updated_at': datetime.now(timezone.utc),
-    }
+@router.get('', response_model=list[TableInfo], summary='Список столов в кафе')
+async def list_tables(
+    cafe_id: int,
+    session: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[User, Depends(get_current_user)],
+) -> list[Table]:
+    """Возвращает список столиков."""
+    return await get_tables(session, cafe_id)
 
 
-@router.get('', response_model=list[TableInfo])
-async def get_tables(cafe_id: int) -> list:
-    """Список столиков."""
-    return [fake_table(1, cafe_id), fake_table(2, cafe_id)]
-
-
-@router.post('', response_model=TableInfo, status_code=status.HTTP_201_CREATED)
-async def create_table(cafe_id: int, data: TableCreate) -> dict:
+@router.post(
+    '',
+    response_model=TableInfo,
+    status_code=status.HTTP_201_CREATED,
+    summary='Новый стол в кафе',
+)
+async def create_table_endpoint(
+    cafe_id: int,
+    data: TableCreate,
+    session: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_staff)],
+) -> Table:
     """Создание столика."""
-    return fake_table(3, cafe_id)
+    actor_cafe_id = None
+    if current_user.role != 'admin':
+        actor_cafe_id = await get_manager_cafe_id(session, current_user.id)
+
+    payload = data.model_dump(exclude_unset=True)
+    return await create_table(
+        session=session,
+        actor_role=current_user.role,
+        actor_cafe_id=actor_cafe_id,
+        cafe_id=cafe_id,
+        description=payload.get('description'),
+        seat_number=payload['seat_number'],
+    )
 
 
-@router.get('/{table_id}', response_model=TableInfo)
-async def get_table(cafe_id: int, table_id: int) -> dict:
-    """Информация о столике."""
-    return fake_table(table_id, cafe_id)
+@router.get(
+    '/{table_id}',
+    response_model=TableInfo,
+    summary='Информация о столе по ID',
+)
+async def get_table_by_id(
+    cafe_id: int,
+    table_id: int,
+    session: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[User, Depends(get_current_user)],
+) -> Table:
+    """Возвращает столик."""
+    table = await get_table(session, table_id)
+    if table.cafe_id != cafe_id:
+        raise NotFoundError(f'Стол {table_id} не найден в кафе {cafe_id}.')
+    return table
 
 
-@router.patch('/{table_id}', response_model=TableInfo)
-async def update_table(cafe_id: int, table_id: int, data: TableUpdate) -> dict:
+@router.patch(
+    '/{table_id}',
+    response_model=TableInfo,
+    summary='Обновление стола по ID',
+)
+async def update_table_by_id(
+    cafe_id: int,
+    table_id: int,
+    data: TableUpdate,
+    session: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_staff)],
+) -> Table:
     """Обновление информации о столике."""
-    return fake_table(table_id, cafe_id)
+    actor_cafe_id = None
+    if current_user.role != 'admin':
+        actor_cafe_id = await get_manager_cafe_id(session, current_user.id)
+
+    fields = data.model_dump(exclude_unset=True)
+    return await update_table(
+        session=session,
+        actor_role=current_user.role,
+        actor_cafe_id=actor_cafe_id,
+        table_id=table_id,
+        **fields,
+    )
