@@ -4,16 +4,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.user import User
 from repositories.base import CRUDBase
 
+from core.enums import UserRole
+
 
 class CRUDUser(CRUDBase[User]):
     """CRUD для пользователей."""
 
     async def get_by_login(
         self,
-        login: str,
         session: AsyncSession,
+        login: str,
     ) -> User | None:
-        """Проверка логина."""
+        """Проверка логина (email или телефон)."""
         result = await session.execute(
             select(User).where(
                 or_(
@@ -21,19 +23,6 @@ class CRUDUser(CRUDBase[User]):
                     User.phone == login,
                 ),
             ),
-        )
-        return result.scalar_one_or_none()
-
-    async def get_by_attribute(
-        self,
-        session: AsyncSession,
-        attribute: str,
-        value: str,
-    ) -> User | None:
-        """Получить пользователя по указанному атрибуту."""
-        column = getattr(User, attribute)
-        result = await session.execute(
-            select(User).where(column == value),
         )
         return result.scalar_one_or_none()
 
@@ -46,7 +35,7 @@ class CRUDUser(CRUDBase[User]):
         result = await session.execute(
             select(User).where(
                 User.cafe_id == cafe_id,
-                User.role == 'manager',
+                User.role == UserRole.MANAGER.value,
             ),
         )
         return list(result.scalars().all())

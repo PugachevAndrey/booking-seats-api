@@ -1,4 +1,4 @@
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -20,15 +20,25 @@ class CRUDBase(Generic[ModelType]):
         obj_id: int,
     ) -> ModelType | None:
         """Получить запись по id."""
-        result = await session.execute(
-            select(self.model).where(self.model.id == obj_id),
-        )
-        return result.scalar_one_or_none()
+        return await session.get(self.model, obj_id)
 
     async def get_multi(self, session: AsyncSession) -> list[ModelType]:
         """Получить все записи."""
         result = await session.execute(select(self.model))
         return list(result.scalars().all())
+
+    async def get_by_attribute(
+        self,
+        session: AsyncSession,
+        attribute: str,
+        value: Any,
+    ) -> ModelType | None:
+        """Получить запись по указанному атрибуту."""
+        column = getattr(self.model, attribute)
+        result = await session.execute(
+            select(self.model).where(column == value),
+        )
+        return result.scalar_one_or_none()
 
     async def create(
         self,
