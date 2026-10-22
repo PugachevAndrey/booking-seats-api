@@ -1,10 +1,13 @@
 from typing import Any
 
+from pydantic import BaseModel
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.cafe_manager import CafeManager
 from models.user import User
+from repositories.user import user_crud
+from schemas.user import UserUpdate
 from validators import (
     ensure_text_not_blank,
     validate_role,
@@ -16,16 +19,27 @@ from .access import ROLES, ROLE_ADMIN, ROLE_USER, ensure_admin, ensure_staff
 from core.errors import ConflictError, NotFoundError, ValidationError
 
 USER_EDITABLE_FIELDS = frozenset(
-    {'username', 'email', 'phone', 'tg_id', 'password_hash', 'role'},
+    {'username', 'email', 'phone', 'tg_id', 'password', 'role'},
 )
 UNIQUE_FIELDS = frozenset({'email', 'phone', 'tg_id'})
 PROFILE_FIELDS = frozenset({'username', 'email', 'phone', 'tg_id'})
 STAFF_EDITABLE_FIELDS = USER_EDITABLE_FIELDS | {'is_active'}
 
 
+class _UserCreate(BaseModel):
+    """Внутренняя схема создания пользователя."""
+
+    username: str
+    email: str | None = None
+    phone: str | None = None
+    tg_id: str | None = None
+    password_hash: str
+    role: str
+
+
 async def get_user(session: AsyncSession, user_id: int) -> User:
     """Возвращает активного пользователя по ID."""
-    user = await session.get(User, user_id)
+    user = await user_crud.get(session=session, obj_id=user_id)
     if user is None or not user.is_active:
         raise NotFoundError(f'Пользователь {user_id} не найден.')
     return user
@@ -36,13 +50,14 @@ async def get_user_by_email(
     email: str,
 ) -> User | None:
     """Возвращает активного пользователя по e-mail."""
-    result = await session.execute(
-        select(User).where(
-            User.email == email,
-            User.is_active.is_(True),
-        ),
+    user = await user_crud.get_by_attribute(
+        session=session,
+        attribute='email',
+        value=email,
     )
-    return result.scalars().first()
+    if user is None or not user.is_active:
+        return None
+    return user
 
 
 async def get_users(
@@ -52,15 +67,26 @@ async def get_users(
 ) -> list[User]:
     """Возвращает список активных пользователей согласно роли."""
     ensure_staff(actor_role)
-    query = select(User).where(User.is_active.is_(True))
-    if actor_role != ROLE_ADMIN:
-        if actor_cafe_id is None:
-            return []
-        query = query.join(
-            CafeManager,
-            CafeManager.user_id == User.id,
-        ).where(CafeManager.cafe_id == actor_cafe_id)
-    result = await session.execute(query.order_by(User.id))
+
+    if actor_role == ROLE_ADMIN:
+        users = await user_crud.get_multi(session=session)
+        return sorted(
+            (user for user in users if user.is_active),
+            key=lambda user: user.id,
+        )
+
+    if actor_cafe_id is None:
+        return []
+
+    result = await session.execute(
+        select(User)
+        .join(CafeManager, CafeManager.user_id == User.id)
+        .where(
+            User.is_active.is_(True),
+            CafeManager.cafe_id == actor_cafe_id,
+        )
+        .order_by(User.id),
+    )
     return list(result.scalars().all())
 
 
@@ -98,7 +124,7 @@ async def create_user(
     email: str | None,
     phone: str | None,
     tg_id: str | None,
-    password_hash: str,
+    password: str,
     role: str = ROLE_USER,
 ) -> User:
     """Создаёт нового пользователя."""
@@ -106,22 +132,21 @@ async def create_user(
     if email is None and phone is None:
         raise ValidationError('Нужен email или телефон.')
     validate_role(role, ROLES)
-    ensure_text_not_blank(password_hash, 'Хэш пароля')
+    ensure_text_not_blank(password, 'Пароль')
 
     await _ensure_unique(session, email, phone, tg_id)
 
-    user = User(
-        username=username,
-        email=email,
-        phone=phone,
-        tg_id=tg_id,
-        password_hash=password_hash,
-        role=role,
+    return await user_crud.create(
+        session=session,
+        obj_in=_UserCreate(
+            username=username,
+            email=email,
+            phone=phone,
+            tg_id=tg_id,
+            password_hash=User.hash_password(password),
+            role=role,
+        ),
     )
-    session.add(user)
-    await session.flush()
-    await session.refresh(user)
-    return user
 
 
 async def update_user(
@@ -179,12 +204,18 @@ async def update_user(
             exclude_user_id=user_id,
         )
 
-    for field_name, value in fields.items():
-        setattr(user, field_name, value)
+    if 'password' in fields:
+        user.set_password(fields.pop('password'))
 
-    await session.flush()
-    await session.refresh(user)
-    return user
+    if not fields:
+        await session.refresh(user)
+        return user
+
+    return await user_crud.update(
+        session=session,
+        db_obj=user,
+        obj_in=UserUpdate(**fields),
+    )
 
 
 async def delete_user(
@@ -197,5 +228,9 @@ async def delete_user(
     if actor_id != user_id:
         ensure_admin(actor_role)
     user = await get_user(session, user_id)
-    user.is_active = False
-    await session.flush()
+
+    await user_crud.update(
+        session=session,
+        db_obj=user,
+        obj_in=UserUpdate(is_active=False),
+    )

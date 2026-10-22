@@ -1,9 +1,9 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.cafe import Cafe
 from models.cafe_manager import CafeManager
 from models.user import User
+from repositories.cafe import cafe_crud
 
 from .access import ensure_admin
 from core.errors import ConflictError, NotFoundError
@@ -14,7 +14,7 @@ async def _ensure_cafe_exists(
     cafe_id: int,
 ) -> None:
     """Проверяет существование активного кафе."""
-    cafe = await session.get(Cafe, cafe_id)
+    cafe = await cafe_crud.get(session=session, obj_id=cafe_id)
     if cafe is None or not cafe.is_active:
         raise NotFoundError(f'Кафе {cafe_id} не найдено.')
 
@@ -81,9 +81,7 @@ async def get_cafe_managers(
     """Возвращает связи кафе с менеджерами."""
     await _ensure_cafe_exists(session, cafe_id)
     result = await session.execute(
-        select(CafeManager)
-        .where(CafeManager.cafe_id == cafe_id)
-        .order_by(CafeManager.user_id),
+        select(CafeManager).where(CafeManager.cafe_id == cafe_id).order_by(CafeManager.user_id),
     )
     return list(result.scalars().all())
 
@@ -95,9 +93,7 @@ async def get_cafe_manager_ids(
     """Возвращает идентификаторы менеджеров кафе."""
     await _ensure_cafe_exists(session, cafe_id)
     result = await session.execute(
-        select(CafeManager.user_id)
-        .where(CafeManager.cafe_id == cafe_id)
-        .order_by(CafeManager.user_id),
+        select(CafeManager.user_id).where(CafeManager.cafe_id == cafe_id).order_by(CafeManager.user_id),
     )
     return list(result.scalars().all())
 
@@ -120,11 +116,7 @@ async def sync_cafe_managers(
     cafe_id: int,
     manager_ids: list[int] | None,
 ) -> None:
-    """Синхронизирует набор менеджеров кафе.
-
-    `None` — оставить связи без изменений, пустой список — очистить,
-    непустой список — заменить. Права проверяет вызывающий сервис.
-    """
+    """Синхронизирует набор менеджеров кафе."""
     if manager_ids is None:
         return
 
