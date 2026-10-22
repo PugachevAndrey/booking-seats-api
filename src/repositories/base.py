@@ -48,7 +48,7 @@ class CRUDBase(Generic[ModelType]):
         """Создать новую запись."""
         db_obj = self.model(**obj_in.model_dump())
         session.add(db_obj)
-        await session.commit()
+        await session.flush()
         await session.refresh(db_obj)
         return db_obj
 
@@ -63,7 +63,7 @@ class CRUDBase(Generic[ModelType]):
         for field, value in update_data.items():
             setattr(db_obj, field, value)
         session.add(db_obj)
-        await session.commit()
+        await session.flush()
         await session.refresh(db_obj)
         return db_obj
 
@@ -74,4 +74,4 @@ class CRUDBase(Generic[ModelType]):
     ) -> None:
         """Удалить запись."""
         await session.delete(db_obj)
-        await session.commit()
+        await session.flush()

@@ -4,8 +4,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.user import User
 from repositories.base import CRUDBase
 
-from core.enums import UserRole
-
 
 class CRUDUser(CRUDBase[User]):
     """CRUD для пользователей."""
@@ -25,20 +23,6 @@ class CRUDUser(CRUDBase[User]):
             ),
         )
         return result.scalar_one_or_none()
-
-    async def get_managers_by_cafe(
-        self,
-        session: AsyncSession,
-        cafe_id: int,
-    ) -> list[User]:
-        """Получить менеджеров кафе."""
-        result = await session.execute(
-            select(User).where(
-                User.cafe_id == cafe_id,
-                User.role == UserRole.MANAGER.value,
-            ),
-        )
-        return list(result.scalars().all())
 
 
 user_crud = CRUDUser(User)
