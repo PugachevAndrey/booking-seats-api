@@ -8,7 +8,7 @@ from api.v1.deps import get_db
 from repositories.user import user_crud
 from schemas.base import AuthSchema
 
-from core.errors import ValidationError
+from core.errors import UnauthorizedError
 from core.security import create_access_token
 
 router = APIRouter(prefix='/auth', tags=['Аутентификация'])
@@ -37,10 +37,10 @@ async def login(
         session=session,
     )
     if user is None or not user.is_active:
-        raise ValidationError('Неверный логин или пароль.')
+        raise UnauthorizedError('Неверный логин или пароль.')
 
     if not user.check_password(data.password.get_secret_value()):
-        raise ValidationError('Неверный логин или пароль.')
+        raise UnauthorizedError('Неверный логин или пароль.')
 
     token = create_access_token(subject=user.id)
     return TokenResponse(access_token=token)

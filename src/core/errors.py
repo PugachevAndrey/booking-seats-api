@@ -46,6 +46,14 @@ class PermissionDeniedError(DomainError):
     status_code = 403
 
 
+class UnauthorizedError(DomainError):
+    """Требуется авторизация или неверные учетные данные."""
+
+    default_message = 'Требуется авторизация.'
+    code = 'UNAUTHORIZED'
+    status_code = 401
+
+
 def error_payload(error: DomainError) -> dict[str, Any]:
     """Сериализует доменную ошибку в словарь ответа."""
     return {

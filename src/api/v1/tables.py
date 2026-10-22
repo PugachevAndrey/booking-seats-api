@@ -15,6 +15,7 @@ from services.table import (
     update_table,
 )
 
+from core.enums import UserRole
 from core.errors import NotFoundError
 
 router = APIRouter(prefix='/cafes/{cafe_id}/tables', tags=['Столы'])
@@ -44,7 +45,7 @@ async def create_table_endpoint(
 ) -> Table:
     """Создание столика."""
     actor_cafe_id = None
-    if current_user.role != 'admin':
+    if current_user.role != UserRole.ADMIN.value:
         actor_cafe_id = await get_manager_cafe_id(session, current_user.id)
 
     payload = data.model_dump(exclude_unset=True)
@@ -89,8 +90,12 @@ async def update_table_by_id(
     current_user: Annotated[User, Depends(get_current_staff)],
 ) -> Table:
     """Обновление информации о столике."""
+    table = await get_table(session, table_id)
+    if table.cafe_id != cafe_id:
+        raise NotFoundError(f'Стол {table_id} не найден в кафе {cafe_id}.')
+
     actor_cafe_id = None
-    if current_user.role != 'admin':
+    if current_user.role != UserRole.ADMIN.value:
         actor_cafe_id = await get_manager_cafe_id(session, current_user.id)
 
     fields = data.model_dump(exclude_unset=True)

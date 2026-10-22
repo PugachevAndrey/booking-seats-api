@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.v1.deps import (
@@ -9,6 +10,7 @@ from api.v1.deps import (
     get_db,
     get_optional_user,
 )
+from models.booking import Booking
 from models.user import User
 from schemas.user import UserCreate, UserInfo, UserUpdate
 from services.cafe_manager import get_manager_cafe_id
@@ -19,6 +21,7 @@ from services.user import (
     update_user,
 )
 
+from core.enums import UserRole
 from core.errors import NotFoundError, PermissionDeniedError
 
 router = APIRouter(prefix='/users', tags=['Пользователи'])
@@ -55,13 +58,19 @@ async def _ensure_manager_sees_user(
     user_id: int,
 ) -> None:
     """Менеджер может видеть только пользователей своего кафе."""
-    if current_user.role == 'admin':
+    if current_user.role == UserRole.ADMIN:
         return
+
     cafe_id = await get_manager_cafe_id(session, current_user.id)
     if cafe_id is None:
         raise PermissionDeniedError('Менеджер не привязан к кафе.')
-    visible = await get_users(session, current_user.role, cafe_id)
-    if all(user.id != user_id for user in visible):
+
+    stmt = select(Booking).where(
+        Booking.user_id == user_id,
+        Booking.cafe_id == cafe_id,
+    )
+    result = await session.execute(stmt)
+    if result.scalar_one_or_none() is None:
         raise NotFoundError(f'Пользователь {user_id} не найден.')
 
 
@@ -76,7 +85,7 @@ async def list_users(
 ) -> list[User]:
     """Список пользователей. Только админ или менеджер."""
     cafe_id = None
-    if current_user.role != 'admin':
+    if current_user.role != UserRole.ADMIN.value:
         cafe_id = await get_manager_cafe_id(session, current_user.id)
     return await get_users(session, current_user.role, cafe_id)
 

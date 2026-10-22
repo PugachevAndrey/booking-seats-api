@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.v1.deps import get_current_staff, get_current_user, get_db
+from api.v1.deps import get_current_admin, get_db
 from models.cafe import Cafe
 from models.user import User
 from schemas.cafe import CafeCreate, CafeInfo, CafeUpdate
@@ -15,13 +15,14 @@ from services.cafe import (
 )
 from services.cafe_manager import get_manager_cafe_id
 
+from core.enums import UserRole
+
 router = APIRouter(prefix='/cafes', tags=['Кафе'])
 
 
 @router.get('', response_model=list[CafeInfo], summary='Список кафе')
 async def list_cafes(
     session: Annotated[AsyncSession, Depends(get_db)],
-    _: Annotated[User, Depends(get_current_user)],
 ) -> list[Cafe]:
     """Возвращает список кафе."""
     return await get_cafes(session)
@@ -36,7 +37,7 @@ async def list_cafes(
 async def create_cafe_endpoint(
     data: CafeCreate,
     session: Annotated[AsyncSession, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_staff)],
+    current_user: Annotated[User, Depends(get_current_admin)],
 ) -> Cafe:
     """Создание кафе."""
     payload = data.model_dump(exclude_unset=True)
@@ -61,7 +62,6 @@ async def create_cafe_endpoint(
 async def get_cafe_by_id(
     cafe_id: int,
     session: Annotated[AsyncSession, Depends(get_db)],
-    _: Annotated[User, Depends(get_current_user)],
 ) -> Cafe:
     """Информация о кафе."""
     return await get_cafe(session, cafe_id)
@@ -76,11 +76,11 @@ async def update_cafe_by_id(
     cafe_id: int,
     data: CafeUpdate,
     session: Annotated[AsyncSession, Depends(get_db)],
-    current_user: Annotated[User, Depends(get_current_staff)],
+    current_user: Annotated[User, Depends(get_current_admin)],
 ) -> Cafe:
     """Обновление информации о кафе."""
     actor_cafe_id = None
-    if current_user.role != 'admin':
+    if current_user.role != UserRole.ADMIN.value:
         actor_cafe_id = await get_manager_cafe_id(session, current_user.id)
 
     fields = data.model_dump(exclude_unset=True)

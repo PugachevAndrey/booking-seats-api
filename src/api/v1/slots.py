@@ -15,6 +15,7 @@ from services.slot import (
     update_slot,
 )
 
+from core.enums import UserRole
 from core.errors import NotFoundError
 
 router = APIRouter(
@@ -51,7 +52,7 @@ async def create_slot_endpoint(
 ) -> Slot:
     """Создание слота."""
     actor_cafe_id = None
-    if current_user.role != 'admin':
+    if current_user.role != UserRole.ADMIN.value:
         actor_cafe_id = await get_manager_cafe_id(session, current_user.id)
 
     payload = data.model_dump(exclude_unset=True)
@@ -97,8 +98,12 @@ async def update_slot_by_id(
     current_user: Annotated[User, Depends(get_current_staff)],
 ) -> Slot:
     """Обновление информации о слоте."""
+    slot = await get_slot(session, slot_id)
+    if slot.cafe_id != cafe_id:
+        raise NotFoundError(f'Слот {slot_id} не найден в кафе {cafe_id}.')
+
     actor_cafe_id = None
-    if current_user.role != 'admin':
+    if current_user.role != UserRole.ADMIN.value:
         actor_cafe_id = await get_manager_cafe_id(session, current_user.id)
 
     fields = data.model_dump(exclude_unset=True)
