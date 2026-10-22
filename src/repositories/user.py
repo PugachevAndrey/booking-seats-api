@@ -10,10 +10,10 @@ class CRUDUser(CRUDBase[User]):
 
     async def get_by_login(
         self,
-        login: str,
         session: AsyncSession,
+        login: str,
     ) -> User | None:
-        """Проверка логина."""
+        """Проверка логина (email или телефон)."""
         result = await session.execute(
             select(User).where(
                 or_(
@@ -23,33 +23,6 @@ class CRUDUser(CRUDBase[User]):
             ),
         )
         return result.scalar_one_or_none()
-
-    async def get_by_attribute(
-        self,
-        session: AsyncSession,
-        attribute: str,
-        value: str,
-    ) -> User | None:
-        """Получить пользователя по указанному атрибуту."""
-        column = getattr(User, attribute)
-        result = await session.execute(
-            select(User).where(column == value),
-        )
-        return result.scalar_one_or_none()
-
-    async def get_managers_by_cafe(
-        self,
-        session: AsyncSession,
-        cafe_id: int,
-    ) -> list[User]:
-        """Получить менеджеров кафе."""
-        result = await session.execute(
-            select(User).where(
-                User.cafe_id == cafe_id,
-                User.role == 'manager',
-            ),
-        )
-        return list(result.scalars().all())
 
 
 user_crud = CRUDUser(User)
