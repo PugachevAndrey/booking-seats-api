@@ -2,6 +2,7 @@ from typing import Any
 
 from pydantic import BaseModel
 from sqlalchemy import or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.cafe_manager import CafeManager
@@ -24,6 +25,8 @@ USER_EDITABLE_FIELDS = frozenset(
 UNIQUE_FIELDS = frozenset({'email', 'phone', 'tg_id'})
 PROFILE_FIELDS = frozenset({'username', 'email', 'phone', 'tg_id'})
 STAFF_EDITABLE_FIELDS = USER_EDITABLE_FIELDS | {'is_active'}
+
+UNIQUE_CONFLICT_MESSAGE = 'Пользователь с такими данными уже существует.'
 
 
 class _UserCreate(BaseModel):
@@ -113,9 +116,7 @@ async def _ensure_unique(
         query = query.where(User.id != exclude_user_id)
     result = await session.execute(query)
     if result.first() is not None:
-        raise ConflictError(
-            'Пользователь с такими данными уже существует.',
-        )
+        raise ConflictError(UNIQUE_CONFLICT_MESSAGE)
 
 
 async def create_user(
@@ -136,20 +137,24 @@ async def create_user(
 
     await _ensure_unique(session, email, phone, tg_id)
 
-    return await user_crud.create(
-        session=session,
-        obj_in=_UserCreate(
-            username=username,
-            email=email,
-            phone=phone,
-            tg_id=tg_id,
-            password_hash=User.hash_password(password),
-            role=role,
-        ),
-    )
+    try:
+        return await user_crud.create(
+            session=session,
+            obj_in=_UserCreate(
+                username=username,
+                email=email,
+                phone=phone,
+                tg_id=tg_id,
+                password_hash=User.hash_password(password),
+                role=role,
+            ),
+        )
+    except IntegrityError as exc:
+        await session.rollback()
+        raise ConflictError(UNIQUE_CONFLICT_MESSAGE) from exc
 
 
-async def update_user(
+async def update_user(  # noqa: C901
     session: AsyncSession,
     actor_id: int,
     actor_role: str,
@@ -208,14 +213,18 @@ async def update_user(
         user.set_password(fields.pop('password'))
 
     if not fields:
-        await session.refresh(user)
+        await session.flush()
         return user
 
-    return await user_crud.update(
-        session=session,
-        db_obj=user,
-        obj_in=UserUpdate(**fields),
-    )
+    try:
+        return await user_crud.update(
+            session=session,
+            db_obj=user,
+            obj_in=UserUpdate(**fields),
+        )
+    except IntegrityError as exc:
+        await session.rollback()
+        raise ConflictError(UNIQUE_CONFLICT_MESSAGE) from exc
 
 
 async def delete_user(
