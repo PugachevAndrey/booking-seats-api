@@ -42,13 +42,25 @@ class User(Base):
         comment='Роль пользователя',
     )
 
+    @property
+    def password(self) -> str:
+        """Пароль в открытом виде не хранится - только хэш."""
+        raise AttributeError(
+            'Чтение пароля запрещено: он хранится только в виде хэша.',
+        )
+
+    @password.setter
+    def password(self, password: str) -> None:
+        """Хэширует и сохраняет пароль через set_password."""
+        self.set_password(password)
+
     @staticmethod
     def hash_password(password: str) -> str:
         """Хэширует пароль."""
         return _hasher.hash(password)
 
     def set_password(self, password: str) -> None:
-        """Хэширует и сохраняет пароль."""
+        """Хэширует пароль."""
         self.password_hash = self.hash_password(password)
 
     def check_password(self, password: str) -> bool:
