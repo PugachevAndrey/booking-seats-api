@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from core.base_model import Base
 from core.enums import UserRole
 
-_password_hash = PasswordHash.recommended()
+_hasher = PasswordHash.recommended()
 
 
 class User(Base):
@@ -42,15 +42,15 @@ class User(Base):
         comment='Роль пользователя',
     )
 
-    @classmethod
-    def hash_password(cls, password: str) -> str:
+    @staticmethod
+    def hash_password(password: str) -> str:
         """Хэширует пароль."""
-        return _password_hash.hash(password)
+        return _hasher.hash(password)
 
     def set_password(self, password: str) -> None:
-        """Хеширует и сохраняет пароль."""
+        """Хэширует и сохраняет пароль."""
         self.password_hash = self.hash_password(password)
 
     def check_password(self, password: str) -> bool:
         """Проверяет пароль и сохранённый хэш."""
-        return _password_hash.verify(password, self.password_hash)
+        return _hasher.verify(password, self.password_hash)
