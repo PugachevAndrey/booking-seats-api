@@ -1,10 +1,12 @@
 import uuid
 from typing import Any
 
-from sqlalchemy import select
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.cafe import Cafe
+from repositories.cafe import cafe_crud
+from schemas.cafe import CafeUpdate
 from validators import (
     validate_cafe_description,
     validate_cafe_fields,
@@ -22,9 +24,19 @@ CAFE_EDITABLE_FIELDS = frozenset(
 )
 
 
+class _CafeCreate(BaseModel):
+    """Внутренняя схема создания кафе."""
+
+    name: str
+    address: str
+    phone: str
+    description: str | None = None
+    photo_id: uuid.UUID | None = None
+
+
 async def get_cafe(session: AsyncSession, cafe_id: int) -> Cafe:
     """Возвращает активное кафе по ID."""
-    cafe = await session.get(Cafe, cafe_id)
+    cafe = await cafe_crud.get(session=session, obj_id=cafe_id)
     if cafe is None or not cafe.is_active:
         raise NotFoundError(f'Кафе {cafe_id} не найдено.')
     return cafe
@@ -32,10 +44,11 @@ async def get_cafe(session: AsyncSession, cafe_id: int) -> Cafe:
 
 async def get_cafes(session: AsyncSession) -> list[Cafe]:
     """Возвращает список активных кафе."""
-    result = await session.execute(
-        select(Cafe).where(Cafe.is_active.is_(True)).order_by(Cafe.id),
+    cafes = await cafe_crud.get_multi(session=session)
+    return sorted(
+        (cafe for cafe in cafes if cafe.is_active),
+        key=lambda cafe: cafe.id,
     )
-    return list(result.scalars().all())
 
 
 async def _ensure_photo_free(
@@ -44,14 +57,12 @@ async def _ensure_photo_free(
     exclude_cafe_id: int | None = None,
 ) -> None:
     """Проверяет, что фото не привязано к другому кафе."""
-    query = select(Cafe).where(
-        Cafe.photo_id == photo_id,
-        Cafe.is_active.is_(True),
-    )
-    if exclude_cafe_id is not None:
-        query = query.where(Cafe.id != exclude_cafe_id)
-    result = await session.execute(query)
-    if result.first() is not None:
+    cafes = await cafe_crud.get_multi(session=session)
+    for cafe in cafes:
+        if not cafe.is_active or cafe.photo_id != photo_id:
+            continue
+        if exclude_cafe_id is not None and cafe.id == exclude_cafe_id:
+            continue
         raise ConflictError('Это фото уже используется другим кафе.')
 
 
@@ -72,17 +83,18 @@ async def create_cafe(
     if photo_id is not None:
         await _ensure_photo_free(session, photo_id)
 
-    cafe = Cafe(
-        name=name,
-        address=address,
-        phone=phone,
-        description=description,
-        photo_id=photo_id,
+    cafe = await cafe_crud.create(
+        session=session,
+        obj_in=_CafeCreate(
+            name=name,
+            address=address,
+            phone=phone,
+            description=description,
+            photo_id=photo_id,
+        ),
     )
-    session.add(cafe)
-    await session.flush()
 
-    await sync_cafe_managers(session, cafe.id, managers_id)
+    await sync_cafe_managers(session, cafe.id, managers_id or None)
 
     await session.refresh(cafe)
     return cafe
@@ -123,22 +135,23 @@ async def update_cafe(
     if 'description' in changes:
         validate_cafe_description(changes['description'])
 
-    if 'photo_id' in changes:
-        photo_id = changes['photo_id']
-        if photo_id is not None:
-            await _ensure_photo_free(
-                session,
-                photo_id,
-                exclude_cafe_id=cafe_id,
-            )
+    if 'photo_id' in changes and changes['photo_id'] is not None:
+        await _ensure_photo_free(
+            session,
+            changes['photo_id'],
+            exclude_cafe_id=cafe_id,
+        )
 
-    await sync_cafe_managers(session, cafe_id, managers_id)
+    if managers_requested:
+        await sync_cafe_managers(session, cafe_id, managers_id)
 
-    for field_name, value in changes.items():
-        setattr(cafe, field_name, value)
+    if changes:
+        cafe = await cafe_crud.update(
+            session=session,
+            db_obj=cafe,
+            obj_in=CafeUpdate(**changes),
+        )
 
-    await session.flush()
-    await session.refresh(cafe)
     return cafe
 
 
@@ -150,7 +163,11 @@ async def delete_cafe(
     """Мягко удаляет кафе и отвязывает менеджеров."""
     ensure_admin(actor_role)
     cafe = await get_cafe(session, cafe_id)
+
     await delete_cafe_managers(session, actor_role, cafe_id)
-    cafe.photo_id = None
-    cafe.is_active = False
-    await session.flush()
+
+    await cafe_crud.update(
+        session=session,
+        db_obj=cafe,
+        obj_in=CafeUpdate(is_active=False, photo_id=None),
+    )
