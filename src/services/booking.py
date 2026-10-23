@@ -89,7 +89,6 @@ async def get_bookings(
                 booking_date=booking_date,
             )
     elif actor_role == ROLE_ADMIN:
-        # get_multi() не принимает фильтров — фильтруем в сервисе.
         bookings = await booking_crud.get_multi(session=session)
     else:
         if actor_cafe_id is None:
@@ -187,6 +186,8 @@ async def _ensure_pairs_free(
     exclude_booking_id: int | None = None,
 ) -> None:
     """Проверяет, что столы и слоты принадлежат кафе и свободны."""
+    await _ensure_cafe_active(session, cafe_id)
+
     for table_id, slot_id in pairs:
         await _ensure_table_and_slot_in_cafe(
             session,
@@ -243,7 +244,6 @@ async def _ensure_table_and_slot_in_cafe(
     cafe_id: int,
 ) -> None:
     """Проверяет, что стол и слот принадлежат кафе."""
-    await _ensure_cafe_active(session, cafe_id)
 
     table = await table_crud.get(session=session, obj_id=table_id)
     if table is None or not table.is_active:
@@ -305,7 +305,10 @@ def _validate_status_change(
             'Менять статус бронирования может только персонал.',
         )
     validate_booking_status(changes['status'], BOOKING_STATUSES)
-    if _as_status(changes['status']) is BookingStatus.COMPLETED and booking.booking_date > date.today():
+    if (
+        _as_status(changes['status']) is BookingStatus.COMPLETED
+        and booking.booking_date > date.today()
+    ):
         raise ValidationError(
             'Нельзя завершить бронь на будущую дату.',
         )
@@ -373,8 +376,6 @@ async def create_booking(
     )
 
     await _replace_booking_links(session, booking.id, pairs)
-    await session.commit()
-    await session.refresh(booking)
     return booking
 
 
@@ -436,8 +437,6 @@ async def update_booking(
 
     if pairs is not None:
         await _replace_booking_links(session, booking_id, pairs)
-        await session.commit()
-        await session.refresh(booking)
 
     return booking
 

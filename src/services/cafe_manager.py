@@ -1,9 +1,10 @@
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.cafe_manager import CafeManager
 from models.user import User
 from repositories.cafe import cafe_crud
+from repositories.cafe_manager import cafe_manager_crud
 
 from .access import ensure_admin
 from core.errors import ConflictError, NotFoundError
@@ -32,7 +33,7 @@ async def _ensure_users_exist(
             User.is_active.is_(True),
         ),
     )
-    found = set(result.scalars().all())
+    found: set[int] = set(result.scalars().all())
     missing = set(manager_ids) - found
     if missing:
         raise ConflictError(
@@ -54,7 +55,7 @@ async def _ensure_managers_free(
             CafeManager.cafe_id != cafe_id,
         ),
     )
-    busy = result.scalars().all()
+    busy: list[int] = list(result.scalars().all())
     if busy:
         raise ConflictError(
             f'Менеджеры уже привязаны к другому кафе: {sorted(busy)}.',
@@ -66,12 +67,25 @@ async def _drop_cafe_links(
     cafe_id: int,
 ) -> None:
     """Удаляет все связи кафе с менеджерами."""
-    result = await session.execute(
-        select(CafeManager).where(CafeManager.cafe_id == cafe_id),
+    await session.execute(
+        delete(CafeManager).where(CafeManager.cafe_id == cafe_id),
     )
-    for link in result.scalars().all():
-        await session.delete(link)
     await session.flush()
+
+
+async def _get_link(
+    session: AsyncSession,
+    cafe_id: int,
+    user_id: int,
+) -> CafeManager | None:
+    """Возвращает связь менеджера с кафе, если она есть."""
+    result = await session.execute(
+        select(CafeManager).where(
+            CafeManager.user_id == user_id,
+            CafeManager.cafe_id == cafe_id,
+        ),
+    )
+    return result.scalar_one_or_none()
 
 
 async def get_cafe_managers(
@@ -81,7 +95,9 @@ async def get_cafe_managers(
     """Возвращает связи кафе с менеджерами."""
     await _ensure_cafe_exists(session, cafe_id)
     result = await session.execute(
-        select(CafeManager).where(CafeManager.cafe_id == cafe_id).order_by(CafeManager.user_id),
+        select(CafeManager)
+        .where(CafeManager.cafe_id == cafe_id)
+        .order_by(CafeManager.user_id),
     )
     return list(result.scalars().all())
 
@@ -93,7 +109,9 @@ async def get_cafe_manager_ids(
     """Возвращает идентификаторы менеджеров кафе."""
     await _ensure_cafe_exists(session, cafe_id)
     result = await session.execute(
-        select(CafeManager.user_id).where(CafeManager.cafe_id == cafe_id).order_by(CafeManager.user_id),
+        select(CafeManager.user_id)
+        .where(CafeManager.cafe_id == cafe_id)
+        .order_by(CafeManager.user_id),
     )
     return list(result.scalars().all())
 
@@ -103,12 +121,10 @@ async def get_manager_cafe_id(
     user_id: int,
 ) -> int | None:
     """Возвращает кафе, к которому привязан менеджер."""
-    result = await session.execute(
-        select(CafeManager.cafe_id).where(
-            CafeManager.user_id == user_id,
-        ),
+    return await cafe_manager_crud.get_cafe_id_by_user(
+        session=session,
+        user_id=user_id,
     )
-    return result.scalar_one_or_none()
 
 
 async def sync_cafe_managers(
@@ -120,14 +136,18 @@ async def sync_cafe_managers(
     if manager_ids is None:
         return
 
+    unique_ids = list(dict.fromkeys(manager_ids))
+
     await _ensure_cafe_exists(session, cafe_id)
-    await _ensure_users_exist(session, manager_ids)
-    await _ensure_managers_free(session, manager_ids, cafe_id)
+    await _ensure_users_exist(session, unique_ids)
+    await _ensure_managers_free(session, unique_ids, cafe_id)
 
     await _drop_cafe_links(session, cafe_id)
 
-    for user_id in dict.fromkeys(manager_ids):
-        session.add(CafeManager(user_id=user_id, cafe_id=cafe_id))
+    session.add_all(
+        CafeManager(user_id=user_id, cafe_id=cafe_id)
+        for user_id in unique_ids
+    )
     await session.flush()
 
 
@@ -141,12 +161,18 @@ async def add_cafe_manager(
     ensure_admin(actor_role)
     await _ensure_cafe_exists(session, cafe_id)
     await _ensure_users_exist(session, [user_id])
+
+    existing = await _get_link(session, cafe_id, user_id)
+    if existing is not None:
+        raise ConflictError(
+            f'Менеджер {user_id} уже привязан к кафе {cafe_id}.',
+        )
+
     await _ensure_managers_free(session, [user_id], cafe_id)
 
     link = CafeManager(user_id=user_id, cafe_id=cafe_id)
     session.add(link)
     await session.flush()
-    await session.refresh(link)
     return link
 
 
@@ -158,19 +184,12 @@ async def remove_cafe_manager(
 ) -> None:
     """Отвязывает менеджера от кафе."""
     ensure_admin(actor_role)
-    result = await session.execute(
-        select(CafeManager).where(
-            CafeManager.user_id == user_id,
-            CafeManager.cafe_id == cafe_id,
-        ),
-    )
-    link = result.scalar_one_or_none()
+    link = await _get_link(session, cafe_id, user_id)
     if link is None:
         raise NotFoundError(
             f'Менеджер {user_id} не привязан к кафе {cafe_id}.',
         )
-    await session.delete(link)
-    await session.flush()
+    await cafe_manager_crud.remove(session=session, db_obj=link)
 
 
 async def delete_cafe_managers(

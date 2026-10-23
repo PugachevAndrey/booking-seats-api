@@ -57,13 +57,16 @@ async def _ensure_photo_free(
     exclude_cafe_id: int | None = None,
 ) -> None:
     """Проверяет, что фото не привязано к другому кафе."""
-    cafes = await cafe_crud.get_multi(session=session)
-    for cafe in cafes:
-        if not cafe.is_active or cafe.photo_id != photo_id:
-            continue
-        if exclude_cafe_id is not None and cafe.id == exclude_cafe_id:
-            continue
-        raise ConflictError('Это фото уже используется другим кафе.')
+    cafe = await cafe_crud.get_by_attribute(
+        session=session,
+        attribute='photo_id',
+        value=photo_id,
+    )
+    if cafe is None or not cafe.is_active:
+        return
+    if exclude_cafe_id is not None and cafe.id == exclude_cafe_id:
+        return
+    raise ConflictError('Это фото уже используется другим кафе.')
 
 
 async def create_cafe(
@@ -96,7 +99,6 @@ async def create_cafe(
 
     await sync_cafe_managers(session, cafe.id, managers_id or None)
 
-    await session.refresh(cafe)
     return cafe
 
 
