@@ -244,7 +244,6 @@ async def _ensure_table_and_slot_in_cafe(
     cafe_id: int,
 ) -> None:
     """Проверяет, что стол и слот принадлежат кафе."""
-
     table = await table_crud.get(session=session, obj_id=table_id)
     if table is None or not table.is_active:
         raise NotFoundError(f'Стол {table_id} не найден.')

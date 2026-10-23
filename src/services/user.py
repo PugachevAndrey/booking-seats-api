@@ -154,7 +154,7 @@ async def create_user(
         raise ConflictError(UNIQUE_CONFLICT_MESSAGE) from exc
 
 
-async def update_user(
+async def update_user(  # noqa: C901
     session: AsyncSession,
     actor_id: int,
     actor_role: str,
