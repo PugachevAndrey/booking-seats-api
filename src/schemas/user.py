@@ -5,7 +5,7 @@ from pydantic_extra_types.phone_numbers import PhoneNumber
 
 from .base import BaseSchema, MainSchema
 from .constants import MAX_LENGTH, MAX_TG_LENGTH, MAX_USERNAME_LENGTH, MIN_LENGTH, MIN_PASS
-from src.core.enums import UserRole
+from core.enums import UserRole
 
 
 class UserShortInfo(BaseSchema):

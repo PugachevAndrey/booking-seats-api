@@ -5,13 +5,13 @@ from fastapi import HTTPException
 from pydantic import MISSING
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.models.user import User
-from src.repositories.slot import slot_crud
-from src.repositories.user import user_crud
-from src.schemas.base import AuthSchema
-from src.schemas.booking import BookingCreate
-from src.schemas.slot import TimeSlotUpdate
-from src.schemas.user import UserCreate, UserUpdate
+from models.user import User
+from repositories.slot import slot_crud
+from repositories.user import user_crud
+from schemas.base import AuthSchema
+from schemas.booking import BookingCreate
+from schemas.slot import TimeSlotUpdate
+from schemas.user import UserCreate, UserUpdate
 
 
 async def validate_user_create_unique(
