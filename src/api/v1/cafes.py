@@ -1,47 +1,93 @@
-from datetime import datetime, timezone
+from typing import Annotated
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.v1.deps import get_current_admin, get_db
+from models.cafe import Cafe
+from models.user import User
 from schemas.cafe import CafeCreate, CafeInfo, CafeUpdate
+from services.cafe import (
+    create_cafe,
+    get_cafe,
+    get_cafes,
+    update_cafe,
+)
+from services.cafe_manager import get_manager_cafe_id
+
+from core.enums import UserRole
 
 router = APIRouter(prefix='/cafes', tags=['Кафе'])
 
 
-def fake_cafe(id: int = 1) -> dict:  # noqa: A002
-    """Временная функция для информации о кафе для заглушек."""
-    return {
-        'id': id,
-        'name': f'Кафе {id}',
-        'address': 'ул. Пушкина, дом Колотушкина',
-        'phone': '+78005553535',
-        'description': 'Хорошее кафе',
-        'photo_id': None,
-        'managers': [],
-        'is_active': True,
-        'created_at': datetime.now(timezone.utc),
-        'updated_at': datetime.now(timezone.utc),
-    }
+@router.get('', response_model=list[CafeInfo], summary='Список кафе')
+async def list_cafes(
+    session: Annotated[AsyncSession, Depends(get_db)],
+) -> list[Cafe]:
+    """Возвращает список кафе."""
+    return await get_cafes(session)
 
 
-@router.get('', response_model=list[CafeInfo])
-async def get_cafes() -> list:
-    """Список всех кафе."""
-    return [fake_cafe(1), fake_cafe(2)]
-
-
-@router.post('', response_model=CafeInfo, status_code=status.HTTP_201_CREATED)
-async def create_cafe(data: CafeCreate) -> dict:
+@router.post(
+    '',
+    response_model=CafeInfo,
+    status_code=status.HTTP_201_CREATED,
+    summary='Создание нового кафе',
+)
+async def create_cafe_endpoint(
+    data: CafeCreate,
+    session: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_admin)],
+) -> Cafe:
     """Создание кафе."""
-    return fake_cafe(3)
+    payload = data.model_dump(exclude_unset=True)
+    return await create_cafe(
+        session=session,
+        actor_role=current_user.role,
+        name=payload['name'],
+        address=payload['address'],
+        phone=payload['phone'],
+        description=payload.get('description'),
+        photo_id=payload.get('photo_id'),
+        managers_id=payload.get('managers_id'),
+    )
 
 
-@router.get('/{cafe_id}', response_model=CafeInfo)
-async def get_cafe(cafe_id: int) -> dict:
+@router.get(
+    '/{cafe_id}',
+    response_model=CafeInfo,
+    summary='Информация о кафе по ID',
+    response_model_exclude_none=True,
+)
+async def get_cafe_by_id(
+    cafe_id: int,
+    session: Annotated[AsyncSession, Depends(get_db)],
+) -> Cafe:
     """Информация о кафе."""
-    return fake_cafe(cafe_id)
+    return await get_cafe(session, cafe_id)
 
 
-@router.patch('/{cafe_id}', response_model=CafeInfo)
-async def update_cafe(cafe_id: int, data: CafeUpdate) -> dict:
-    """Обновление кафе."""
-    return fake_cafe(cafe_id)
+@router.patch(
+    '/{cafe_id}',
+    response_model=CafeInfo,
+    summary='Обновление кафе по ID',
+)
+async def update_cafe_by_id(
+    cafe_id: int,
+    data: CafeUpdate,
+    session: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_admin)],
+) -> Cafe:
+    """Обновление информации о кафе."""
+    actor_cafe_id = None
+    if current_user.role != UserRole.ADMIN.value:
+        actor_cafe_id = await get_manager_cafe_id(session, current_user.id)
+
+    fields = data.model_dump(exclude_unset=True)
+    return await update_cafe(
+        session=session,
+        actor_role=current_user.role,
+        actor_cafe_id=actor_cafe_id,
+        cafe_id=cafe_id,
+        **fields,
+    )
