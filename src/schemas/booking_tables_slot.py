@@ -2,7 +2,7 @@ from pydantic import ConfigDict
 
 from .slot import TimeSlotShortInfo
 from .table import TableShortInfo
-from src.schemas.base import BaseSchema
+from schemas.base import BaseSchema
 
 
 class BookingTableSlot(BaseSchema):

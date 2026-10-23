@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from src.schemas.base import BaseSchema
+from schemas.base import BaseSchema
 
 
 class MediaInfo(BaseSchema):

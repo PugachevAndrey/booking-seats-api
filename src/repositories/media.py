@@ -8,3 +8,6 @@ class CRUDMedia(CRUDBase[Media]):
     Метод update не поддерживается по матрице прав
     (для медиа доступны только Crec и Rrec).
     """
+
+
+media_crud = CRUDMedia(Media)

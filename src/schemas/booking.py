@@ -7,7 +7,7 @@ from .booking_tables_slot import BookingTableSlot, BookingTableSlotShortInfo
 from .cafe import CafeShortInfo
 from .constants import MIN_SYMBOL
 from .user import UserShortInfo
-from src.core.enums import BookingStatus
+from core.enums import BookingStatus
 
 
 class BookingInfo(MainSchema):
