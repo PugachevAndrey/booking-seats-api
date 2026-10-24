@@ -3,8 +3,8 @@ from datetime import date
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.booking import Booking
 from repositories.base import CRUDBase
+from shared.models.booking import Booking
 
 
 class CRUDBooking(CRUDBase[Booking]):

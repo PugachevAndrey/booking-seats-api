@@ -7,9 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.v1.deps import get_db
 from repositories.user import user_crud
 from schemas.base import AuthSchema
-
-from core.errors import UnauthorizedError
-from core.security import create_access_token
+from shared.core.errors import UnauthorizedError
+from shared.core.security import create_access_token
 
 router = APIRouter(prefix='/auth', tags=['Аутентификация'])
 

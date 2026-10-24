@@ -2,9 +2,10 @@ from typing import Self
 
 from pydantic import MISSING, ConfigDict, EmailStr, Field, model_validator
 
+from shared.core.enums import UserRole
+
 from .base import BaseSchema, E164PhoneNumber, MainSchema
 from .constants import MAX_LENGTH, MAX_TG_LENGTH, MAX_USERNAME_LENGTH, MIN_PASS
-from core.enums import UserRole
 
 
 class UserShortInfo(BaseSchema):

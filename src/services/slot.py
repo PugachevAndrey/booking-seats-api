@@ -3,16 +3,16 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.slot import Slot
 from repositories.slot import slot_crud
 from schemas.slot import TimeSlotCreate, TimeSlotUpdate
+from shared.core.errors import NotFoundError, ValidationError
+from shared.models.slot import Slot
 from validators import (
     validate_slot_description,
     validate_slot_time_range,
 )
 
 from .access import ensure_cafe_access
-from core.errors import NotFoundError, ValidationError
 
 SLOT_EDITABLE_FIELDS = frozenset(
     {'start_time', 'end_time', 'description'},

@@ -35,7 +35,7 @@ src = ["src"]
 line-length = 88
 
 [tool.ruff.lint.isort]
-known-first-party = ["api", "core", "models", "repositories", "schemas", "services", "validators"]
+known-first-party = ["api", "core", "models", "repositories", "schemas", "services", "validators", "shared", "celery_app"]
 
 [tool.ruff.lint.per-file-ignores]
 "src/services/*.py" = ["I001"]

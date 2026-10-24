@@ -2,16 +2,16 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.table import Table
 from repositories.table import table_crud
 from schemas.table import TableCreate, TableUpdate
+from shared.core.errors import NotFoundError, ValidationError
+from shared.models.table import Table
 from validators import (
     validate_table_description,
     validate_table_seat_number,
 )
 
 from .access import ensure_cafe_access
-from core.errors import NotFoundError, ValidationError
 
 TABLE_EDITABLE_FIELDS = frozenset({'description', 'seat_number'})
 

@@ -10,8 +10,6 @@ from api.v1.deps import (
     get_db,
     get_optional_user,
 )
-from models.booking import Booking
-from models.user import User
 from schemas.user import UserCreate, UserInfo, UserUpdate
 from services.cafe_manager import get_manager_cafe_id
 from services.user import (
@@ -20,9 +18,10 @@ from services.user import (
     get_users,
     update_user,
 )
-
-from core.enums import UserRole
-from core.errors import NotFoundError, PermissionDeniedError
+from shared.core.enums import UserRole
+from shared.core.errors import NotFoundError, PermissionDeniedError
+from shared.models.booking import Booking
+from shared.models.user import User
 
 router = APIRouter(prefix='/users', tags=['Пользователи'])
 

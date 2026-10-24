@@ -1,5 +1,5 @@
-from models.media import Media
 from repositories.base import CRUDBase
+from shared.models.media import Media
 
 
 class CRUDMedia(CRUDBase[Media]):

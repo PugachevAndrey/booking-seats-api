@@ -46,9 +46,9 @@ services:
     restart: unless-stopped
 
   celery_worker:
-    build: ../
-    entrypoint: []
-    command: celery -A core.celery_app worker --loglevel=info
+    build:
+      context: ..
+      dockerfile: celery_app/Dockerfile
     env_file:
       - ./.env
     depends_on:

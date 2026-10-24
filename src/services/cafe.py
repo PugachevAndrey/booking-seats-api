@@ -4,9 +4,10 @@ from typing import Any
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.cafe import Cafe
 from repositories.cafe import cafe_crud
 from schemas.cafe import CafeUpdate
+from shared.core.errors import ConflictError, NotFoundError, ValidationError
+from shared.models.cafe import Cafe
 from validators import (
     validate_cafe_description,
     validate_cafe_fields,
@@ -17,7 +18,6 @@ from .cafe_manager import (
     delete_cafe_managers,
     sync_cafe_managers,
 )
-from core.errors import ConflictError, NotFoundError, ValidationError
 
 CAFE_EDITABLE_FIELDS = frozenset(
     {'name', 'address', 'phone', 'description', 'photo_id'},

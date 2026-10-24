@@ -5,10 +5,11 @@ from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.cafe_manager import CafeManager
-from models.user import User
 from repositories.user import user_crud
 from schemas.user import UserUpdate
+from shared.core.errors import ConflictError, NotFoundError, ValidationError
+from shared.models.cafe_manager import CafeManager
+from shared.models.user import User
 from validators import (
     ensure_text_not_blank,
     validate_role,
@@ -17,7 +18,6 @@ from validators import (
 )
 
 from .access import ROLES, ROLE_ADMIN, ROLE_USER, ensure_admin, ensure_staff
-from core.errors import ConflictError, NotFoundError, ValidationError
 
 USER_EDITABLE_FIELDS = frozenset(
     {'username', 'email', 'phone', 'tg_id', 'password', 'role'},

@@ -5,13 +5,12 @@ from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.user import User
 from services.access import is_admin, is_staff
 from services.user import get_user
-
-from core.db import get_session
-from core.errors import PermissionDeniedError
-from core.security import decode_access_token
+from shared.core.db import get_session
+from shared.core.errors import PermissionDeniedError
+from shared.core.security import decode_access_token
+from shared.models.user import User
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -19,7 +18,7 @@ bearer_scheme = HTTPBearer(auto_error=False)
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Обёртка над `get_session` для `Depends`."""
     async with get_session() as session:
-        yield session
+        yield session  # noqa: ASYNC119
 
 
 async def get_current_user(

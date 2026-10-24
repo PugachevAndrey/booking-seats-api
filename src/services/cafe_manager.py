@@ -1,13 +1,13 @@
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.cafe_manager import CafeManager
-from models.user import User
 from repositories.cafe import cafe_crud
 from repositories.cafe_manager import cafe_manager_crud
+from shared.core.errors import ConflictError, NotFoundError
+from shared.models.cafe_manager import CafeManager
+from shared.models.user import User
 
 from .access import ensure_admin
-from core.errors import ConflictError, NotFoundError
 
 
 async def _ensure_cafe_exists(

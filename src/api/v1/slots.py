@@ -4,8 +4,6 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.v1.deps import get_current_staff, get_current_user, get_db
-from models.slot import Slot
-from models.user import User
 from schemas.slot import TimeSlotCreate, TimeSlotInfo, TimeSlotUpdate
 from services.cafe_manager import get_manager_cafe_id
 from services.slot import (
@@ -14,9 +12,10 @@ from services.slot import (
     get_slots,
     update_slot,
 )
-
-from core.enums import UserRole
-from core.errors import NotFoundError
+from shared.core.enums import UserRole
+from shared.core.errors import NotFoundError
+from shared.models.slot import Slot
+from shared.models.user import User
 
 router = APIRouter(
     prefix='/cafes/{cafe_id}/time_slots',

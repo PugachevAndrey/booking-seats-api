@@ -1,8 +1,8 @@
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.user import User
 from repositories.base import CRUDBase
+from shared.models.user import User
 
 
 class CRUDUser(CRUDBase[User]):

@@ -1,8 +1,8 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.cafe_manager import CafeManager
 from repositories.base import CRUDBase
+from shared.models.cafe_manager import CafeManager
 
 
 class CRUDCafeManager(CRUDBase[CafeManager]):

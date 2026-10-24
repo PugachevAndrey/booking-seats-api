@@ -4,17 +4,17 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.cafe import Cafe
-from models.media import Media
 from repositories.media import media_crud
-from validators import validate_media_file_name
-
-from .access import ensure_staff, is_admin
-from core.errors import (
+from shared.core.errors import (
     ConflictError,
     NotFoundError,
     PermissionDeniedError,
 )
+from shared.models.cafe import Cafe
+from shared.models.media import Media
+from validators import validate_media_file_name
+
+from .access import ensure_staff, is_admin
 
 
 class _MediaCreate(BaseModel):

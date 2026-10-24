@@ -5,13 +5,20 @@ from pydantic import BaseModel
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.booking import Booking
-from models.booking_tables_slot import BookingTablesSlot
 from repositories.booking import booking_crud
 from repositories.cafe import cafe_crud
 from repositories.slot import slot_crud
 from repositories.table import table_crud
 from schemas.booking import BookingUpdate
+from shared.core.enums import BookingStatus
+from shared.core.errors import (
+    ConflictError,
+    NotFoundError,
+    PermissionDeniedError,
+    ValidationError,
+)
+from shared.models.booking import Booking
+from shared.models.booking_tables_slot import BookingTablesSlot
 from validators import (
     validate_booking_date,
     validate_booking_guest_number,
@@ -26,13 +33,6 @@ from .access import (
     is_staff,
 )
 from .user import get_user
-from core.enums import BookingStatus
-from core.errors import (
-    ConflictError,
-    NotFoundError,
-    PermissionDeniedError,
-    ValidationError,
-)
 
 BOOKING_EDITABLE_FIELDS = frozenset(
     {'guest_number', 'note', 'status', 'booking_date', 'tables_slots'},

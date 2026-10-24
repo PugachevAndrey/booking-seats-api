@@ -3,7 +3,7 @@
 from sqlalchemy import CheckConstraint, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from core.base_model import Base
+from shared.core.base_model import Base
 
 
 class Table(Base):

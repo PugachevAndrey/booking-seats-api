@@ -14,11 +14,10 @@ from api.v1.constants import (
     MEDIA_DIR,
 )
 from api.v1.deps import get_current_staff, get_db
-from models.user import User
 from schemas.media import MediaInfo
 from services.media import create_media, get_media
-
-from core.errors import NotFoundError, ValidationError
+from shared.core.errors import NotFoundError, ValidationError
+from shared.models.user import User
 
 router = APIRouter(prefix='/media', tags=['Медиа'])
 
