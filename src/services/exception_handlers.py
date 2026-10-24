@@ -20,6 +20,7 @@ def register_exception_handlers(application: FastAPI) -> None:
 
     @application.exception_handler(DomainError)
     async def handle_domain_error(
+        request: Request,
         exception: DomainError,
     ) -> JSONResponse:
         """Обрабатывает доменные ошибки приложения."""

@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -45,7 +46,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60 * 24
 
     model_config = SettingsConfigDict(
-        env_file=BASE_DIR / '../infra/.env',
+        env_file=os.getenv('ENV_FILE', str(BASE_DIR / '../infra/.env')),
         env_file_encoding='utf-8',
         extra='ignore',
     )
