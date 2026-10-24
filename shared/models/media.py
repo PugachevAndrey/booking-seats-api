@@ -5,7 +5,7 @@ import uuid
 from sqlalchemy import UUID, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from core.base_model import Base
+from shared.core.base_model import Base
 
 
 class Media(Base):

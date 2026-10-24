@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from core.settings import settings
+from shared.core.settings import settings
 
 async_engine = create_async_engine(
     url=settings.db_url,

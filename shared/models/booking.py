@@ -5,8 +5,8 @@ from datetime import date
 from sqlalchemy import Date, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from core.base_model import Base
-from core.enums import BookingStatus
+from shared.core.base_model import Base
+from shared.core.enums import BookingStatus
 
 
 class Booking(Base):

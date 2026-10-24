@@ -5,8 +5,6 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.v1.deps import get_current_user, get_db
-from models.booking import Booking
-from models.user import User
 from schemas.booking import BookingCreate, BookingInfo, BookingUpdate
 from services.booking import (
     create_booking,
@@ -15,9 +13,11 @@ from services.booking import (
     update_booking,
 )
 from services.cafe_manager import get_manager_cafe_id
-
-from core.enums import BookingStatus, UserRole
-from core.errors import PermissionDeniedError, ValidationError
+from shared.celery_client import celery_client
+from shared.core.enums import BookingStatus, UserRole
+from shared.core.errors import PermissionDeniedError, ValidationError
+from shared.models.booking import Booking
+from shared.models.user import User
 
 router = APIRouter(prefix='/booking', tags=['Бронирования'])
 
@@ -68,7 +68,7 @@ async def create_booking_endpoint(
         actor_cafe_id = await get_manager_cafe_id(session, current_user.id)
 
     payload = data.model_dump(exclude_unset=True)
-    return await create_booking(
+    booking = await create_booking(
         session=session,
         actor_id=current_user.id,
         actor_role=current_user.role,
@@ -80,6 +80,11 @@ async def create_booking_endpoint(
         booking_date=payload['booking_date'],
         tables_slots=payload['tables_slots'],
     )
+    celery_client.send_task(
+        'tasks.notify_booking_created',
+        args=[booking.id],
+    )
+    return booking
 
 
 @router.get(
@@ -129,7 +134,7 @@ async def update_booking_by_id(
 
     fields = data.model_dump(exclude_unset=True)
 
-    return await update_booking(
+    booking = await update_booking(
         session=session,
         actor_id=current_user.id,
         actor_role=current_user.role,
@@ -137,3 +142,8 @@ async def update_booking_by_id(
         booking_id=booking_id,
         **fields,
     )
+    celery_client.send_task(
+        'tasks.notify_booking_updated',
+        args=[booking.id],
+    )
+    return booking

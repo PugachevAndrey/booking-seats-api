@@ -2,12 +2,13 @@ from datetime import date
 
 from pydantic import MISSING, ConfigDict, Field
 
+from shared.core.enums import BookingStatus
+
 from .base import BaseSchema, MainSchema
 from .booking_tables_slot import BookingTableSlot, BookingTableSlotShortInfo
 from .cafe import CafeShortInfo
 from .constants import MIN_SYMBOL
 from .user import UserShortInfo
-from core.enums import BookingStatus
 
 
 class BookingInfo(MainSchema):

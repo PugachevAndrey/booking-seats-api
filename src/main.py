@@ -16,8 +16,7 @@ from api.v1 import (
     users,
 )
 from services.exception_handlers import register_exception_handlers
-
-from core.settings import settings
+from shared.core.settings import settings
 
 
 @asynccontextmanager

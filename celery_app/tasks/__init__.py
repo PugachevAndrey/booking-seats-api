@@ -1,5 +1,5 @@
 """Задачи Celery."""
-from tasks.notifications import (
+from celery_app.tasks.notifications import (
     notify_booking_created,
     notify_booking_reminder,
     notify_booking_updated,

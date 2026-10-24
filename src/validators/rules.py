@@ -2,7 +2,7 @@ from datetime import date, time
 
 from fastapi.exceptions import RequestValidationError
 
-from core.errors import ValidationError
+from shared.core.errors import ValidationError
 
 VALIDATION_ERROR_CODE = 'VALIDATION_ERROR'
 DEFAULT_VALIDATION_MESSAGE = 'Некорректные данные.'

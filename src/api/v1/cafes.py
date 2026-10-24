@@ -4,8 +4,6 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.v1.deps import get_current_admin, get_db
-from models.cafe import Cafe
-from models.user import User
 from schemas.cafe import CafeCreate, CafeInfo, CafeUpdate
 from services.cafe import (
     create_cafe,
@@ -14,8 +12,9 @@ from services.cafe import (
     update_cafe,
 )
 from services.cafe_manager import get_manager_cafe_id
-
-from core.enums import UserRole
+from shared.core.enums import UserRole
+from shared.models.cafe import Cafe
+from shared.models.user import User
 
 router = APIRouter(prefix='/cafes', tags=['Кафе'])
 

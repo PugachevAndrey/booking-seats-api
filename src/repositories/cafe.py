@@ -1,5 +1,5 @@
-from models.cafe import Cafe
 from repositories.base import CRUDBase
+from shared.models.cafe import Cafe
 
 
 class CRUDCafe(CRUDBase[Cafe]):

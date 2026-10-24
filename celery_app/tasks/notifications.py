@@ -5,10 +5,11 @@ import logging
 from collections.abc import Coroutine
 from typing import Any
 
-from services.booking import get_booking
+from sqlalchemy import select
 
-from core.celery_app import celery_app
-from core.db import get_session
+from celery_app.celery import celery_app
+from shared.core.db import get_session
+from shared.models.booking import Booking
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +49,13 @@ def notify_booking_created(booking_id: int) -> str:
 
     async def _notify() -> int:
         async with get_session() as session:
-            booking = await get_booking(session, booking_id)
+            result = await session.execute(
+                select(Booking).where(Booking.id == booking_id),
+            )
+            booking = result.scalar_one_or_none()
+            if booking is None:
+                logger.warning('Booking %s not found', booking_id)
+                return booking_id
             logger.info(
                 'Booking %s created: user_id=%s, cafe_id=%s, date=%s',
                 booking.id,
@@ -69,7 +76,13 @@ def notify_booking_updated(booking_id: int) -> str:
 
     async def _notify() -> int:
         async with get_session() as session:
-            booking = await get_booking(session, booking_id)
+            result = await session.execute(
+                select(Booking).where(Booking.id == booking_id),
+            )
+            booking = result.scalar_one_or_none()
+            if booking is None:
+                logger.warning('Booking %s not found', booking_id)
+                return booking_id
             logger.info(
                 'Booking %s updated: status=%s',
                 booking.id,
@@ -88,7 +101,13 @@ def notify_booking_reminder(booking_id: int) -> str:
 
     async def _notify() -> int:
         async with get_session() as session:
-            booking = await get_booking(session, booking_id)
+            result = await session.execute(
+                select(Booking).where(Booking.id == booking_id),
+            )
+            booking = result.scalar_one_or_none()
+            if booking is None:
+                logger.warning('Booking %s not found', booking_id)
+                return booking_id
             logger.info(
                 'Booking %s reminder: user_id=%s, date=%s',
                 booking.id,

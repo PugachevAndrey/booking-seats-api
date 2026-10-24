@@ -50,6 +50,9 @@ ENV PATH=/app/.venv/bin:$PATH \
   PYTHONUNBUFFERED=1
 
 COPY --chown=$USER_ID:$GROUP_ID ./src /app
+COPY --chown=$USER_ID:$GROUP_ID ./shared /app/shared
+
+ENV PYTHONPATH=/app
 
 EXPOSE 8000/tcp
 

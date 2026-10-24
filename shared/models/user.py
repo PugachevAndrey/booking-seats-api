@@ -4,8 +4,8 @@ from pwdlib import PasswordHash
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from core.base_model import Base
-from core.enums import UserRole
+from shared.core.base_model import Base
+from shared.core.enums import UserRole
 
 _hasher = PasswordHash.recommended()
 

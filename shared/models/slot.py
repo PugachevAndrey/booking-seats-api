@@ -5,7 +5,7 @@ from datetime import time
 from sqlalchemy import CheckConstraint, ForeignKey, Index, Integer, String, Time
 from sqlalchemy.orm import Mapped, mapped_column
 
-from core.base_model import Base
+from shared.core.base_model import Base
 
 
 class Slot(Base):

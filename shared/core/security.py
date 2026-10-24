@@ -3,7 +3,7 @@ from typing import Any
 
 import jwt
 
-from core.settings import settings
+from shared.core.settings import settings
 
 
 def create_access_token(
