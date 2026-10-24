@@ -1,10 +1,9 @@
 from typing import Self
 
 from pydantic import MISSING, ConfigDict, EmailStr, Field, model_validator
-from pydantic_extra_types.phone_numbers import PhoneNumber
 
-from .base import BaseSchema, MainSchema
-from .constants import MAX_LENGTH, MAX_TG_LENGTH, MAX_USERNAME_LENGTH, MIN_LENGTH, MIN_PASS
+from .base import BaseSchema, E164PhoneNumber, MainSchema
+from .constants import MAX_LENGTH, MAX_TG_LENGTH, MAX_USERNAME_LENGTH, MIN_PASS
 from core.enums import UserRole
 
 
@@ -14,9 +13,8 @@ class UserShortInfo(BaseSchema):
     id: int
     username: str
     email: EmailStr | None
-    phone: PhoneNumber | None
+    phone: E164PhoneNumber | None
     tg_id: str | None
-    # response_model_exclude_none=True добавить в эндпойнт
 
     model_config = ConfigDict(from_attributes=True, extra='forbid')
 
@@ -34,7 +32,7 @@ class UserCreate(BaseSchema):
 
     username: str = Field(max_length=MAX_USERNAME_LENGTH)
     email: EmailStr | MISSING = Field(max_length=MAX_LENGTH, default=MISSING)
-    phone: PhoneNumber | MISSING = Field(max_length=MIN_LENGTH, default=MISSING)
+    phone: E164PhoneNumber | MISSING = MISSING
     tg_id: str | MISSING = Field(max_length=MAX_TG_LENGTH, default=MISSING)
     password: str = Field(max_length=MAX_LENGTH, min_length=MIN_PASS)
 
@@ -49,9 +47,11 @@ class UserCreate(BaseSchema):
 class UserUpdate(BaseSchema):
     """Схема изменения пользователя."""
 
+    # Проверка почта или телефон при апдейте зашита в сервисе
+
     username: str | MISSING = Field(max_length=MAX_USERNAME_LENGTH, default=MISSING)
     email: EmailStr | MISSING = Field(max_length=MAX_LENGTH, default=MISSING)
-    phone: PhoneNumber | MISSING = Field(max_length=MIN_LENGTH, default=MISSING)
+    phone: E164PhoneNumber | MISSING = MISSING
     tg_id: str | MISSING = Field(max_length=MAX_TG_LENGTH, default=MISSING)
     role: UserRole | MISSING = MISSING
     password: str | MISSING = Field(max_length=MAX_LENGTH, default=MISSING)

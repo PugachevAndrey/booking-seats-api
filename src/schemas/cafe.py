@@ -1,10 +1,9 @@
 from uuid import UUID
 
 from pydantic import MISSING, ConfigDict, Field
-from pydantic_extra_types.phone_numbers import PhoneNumber
 
-from .base import BaseSchema, MainSchema
-from .constants import ADDRESS_LENGTH, MAX_LENGTH, MIN_LENGTH, MIN_SYMBOL
+from .base import BaseSchema, E164PhoneNumber, MainSchema
+from .constants import ADDRESS_LENGTH, MAX_LENGTH, MIN_SYMBOL
 from .user import UserShortInfo
 
 
@@ -14,7 +13,7 @@ class CafeShortInfo(BaseSchema):
     id: int
     name: str
     address: str
-    phone: PhoneNumber
+    phone: E164PhoneNumber
     description: str | None
     photo_id: UUID | None
 
@@ -34,7 +33,7 @@ class CafeCreate(BaseSchema):
 
     name: str = Field(min_length=MIN_SYMBOL, max_length=MAX_LENGTH)
     address: str = Field(min_length=MIN_SYMBOL, max_length=ADDRESS_LENGTH)
-    phone: PhoneNumber = Field(min_length=MIN_SYMBOL, max_length=MIN_SYMBOL)
+    phone: E164PhoneNumber
     description: str | MISSING = MISSING
     photo_id: UUID | MISSING = MISSING
     managers_id: list[int] = Field(min_length=MIN_SYMBOL)
@@ -45,7 +44,7 @@ class CafeUpdate(BaseSchema):
 
     name: str | MISSING = Field(min_length=MIN_SYMBOL, max_length=MAX_LENGTH, default=MISSING)
     address: str | MISSING = Field(min_length=MIN_SYMBOL, max_length=ADDRESS_LENGTH, default=MISSING)
-    phone: PhoneNumber | MISSING = Field(min_length=MIN_SYMBOL, max_length=MIN_LENGTH, default=MISSING)
+    phone: E164PhoneNumber | MISSING = MISSING
     description: str | MISSING = MISSING
     photo_id: UUID | MISSING = MISSING
     managers_id: list[int] | MISSING = Field(min_length=MIN_SYMBOL, default=MISSING)
