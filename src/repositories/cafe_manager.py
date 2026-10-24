@@ -1,3 +1,5 @@
+"""Репозиторий связей менеджеров с кафе."""
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 

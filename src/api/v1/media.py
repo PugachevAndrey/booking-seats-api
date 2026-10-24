@@ -1,3 +1,5 @@
+"""Роутер медиафайлов: загрузка и получение изображений."""
+
 import io
 import uuid
 from pathlib import Path

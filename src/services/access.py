@@ -1,3 +1,5 @@
+"""Проверка прав доступа по ролям."""
+
 from shared.core.enums import UserRole
 from shared.core.errors import PermissionDeniedError
 

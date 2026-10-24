@@ -1,3 +1,5 @@
+"""Бизнес-логика управления менеджерами кафе."""
+
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -95,9 +97,7 @@ async def get_cafe_managers(
     """Возвращает связи кафе с менеджерами."""
     await _ensure_cafe_exists(session, cafe_id)
     result = await session.execute(
-        select(CafeManager)
-        .where(CafeManager.cafe_id == cafe_id)
-        .order_by(CafeManager.user_id),
+        select(CafeManager).where(CafeManager.cafe_id == cafe_id).order_by(CafeManager.user_id),
     )
     return list(result.scalars().all())
 
@@ -109,9 +109,7 @@ async def get_cafe_manager_ids(
     """Возвращает идентификаторы менеджеров кафе."""
     await _ensure_cafe_exists(session, cafe_id)
     result = await session.execute(
-        select(CafeManager.user_id)
-        .where(CafeManager.cafe_id == cafe_id)
-        .order_by(CafeManager.user_id),
+        select(CafeManager.user_id).where(CafeManager.cafe_id == cafe_id).order_by(CafeManager.user_id),
     )
     return list(result.scalars().all())
 
@@ -144,10 +142,7 @@ async def sync_cafe_managers(
 
     await _drop_cafe_links(session, cafe_id)
 
-    session.add_all(
-        CafeManager(user_id=user_id, cafe_id=cafe_id)
-        for user_id in unique_ids
-    )
+    session.add_all(CafeManager(user_id=user_id, cafe_id=cafe_id) for user_id in unique_ids)
     await session.flush()
 
 

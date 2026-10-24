@@ -1,3 +1,5 @@
+"""Аутентификация: вход в систему и выдача JWT-токена."""
+
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status

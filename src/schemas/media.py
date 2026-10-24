@@ -1,3 +1,5 @@
+"""Схемы медиафайлов."""
+
 from uuid import UUID
 
 from schemas.base import BaseSchema

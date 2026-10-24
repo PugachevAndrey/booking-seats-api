@@ -1,3 +1,5 @@
+"""Конфигурация приложения через pydantic-settings."""
+
 import os
 from pathlib import Path
 

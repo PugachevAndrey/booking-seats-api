@@ -1,3 +1,5 @@
+"""Базовые классы и общие колонки таблиц (id, is_active, timestamps)."""
+
 from datetime import datetime, timezone
 
 from sqlalchemy import BOOLEAN, DateTime, Integer, func

@@ -1,3 +1,5 @@
+"""Зависимости FastAPI: доступ к БД, текущий пользователь, проверка прав."""
+
 from collections.abc import AsyncGenerator
 from typing import Annotated
 

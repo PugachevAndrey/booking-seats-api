@@ -1,3 +1,5 @@
+"""Схемы пользователей."""
+
 from typing import Self
 
 from pydantic import MISSING, ConfigDict, EmailStr, Field, model_validator

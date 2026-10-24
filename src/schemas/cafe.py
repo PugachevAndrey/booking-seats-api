@@ -1,3 +1,5 @@
+"""Схемы кафе."""
+
 from uuid import UUID
 
 from pydantic import MISSING, ConfigDict, Field

@@ -1,3 +1,5 @@
+"""Обработчики исключений FastAPI."""
+
 import logging
 
 from fastapi import FastAPI, Request, status

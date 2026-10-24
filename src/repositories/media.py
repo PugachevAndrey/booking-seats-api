@@ -1,3 +1,5 @@
+"""Репозиторий медиафайлов."""
+
 from repositories.base import CRUDBase
 from shared.models.media import Media
 

@@ -1,3 +1,5 @@
+"""Роутер временных слотов кафе."""
+
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status

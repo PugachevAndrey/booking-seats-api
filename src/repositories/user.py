@@ -1,3 +1,5 @@
+"""Репозиторий пользователей."""
+
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 

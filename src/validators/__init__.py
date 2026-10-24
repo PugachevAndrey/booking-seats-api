@@ -1,3 +1,5 @@
+"""Пакет валидаторов: реэкспорт правил из rules."""
+
 from .rules import (
     BOOKING_NOTE_MAX_LENGTH,
     CAFE_ADDRESS_MAX_LENGTH,

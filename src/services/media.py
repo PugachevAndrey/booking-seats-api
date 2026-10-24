@@ -1,3 +1,5 @@
+"""Бизнес-логика медиафайлов."""
+
 import uuid
 
 from pydantic import BaseModel
@@ -105,8 +107,7 @@ async def delete_media(
     )
     if owner_cafe_id is not None:
         raise ConflictError(
-            f'Медиафайл используется кафе {owner_cafe_id}. '
-            'Сначала отвяжите его.',
+            f'Медиафайл используется кафе {owner_cafe_id}. Сначала отвяжите его.',
         )
 
     await media_crud.remove(session=session, db_obj=media)

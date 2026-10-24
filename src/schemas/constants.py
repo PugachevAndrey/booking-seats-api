@@ -1,3 +1,5 @@
+"""Константы ограничений для полей схем."""
+
 MAX_LENGTH = 255
 MAX_USERNAME_LENGTH = 100
 MAX_TG_LENGTH = 50

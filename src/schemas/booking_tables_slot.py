@@ -1,3 +1,5 @@
+"""Схемы бронирования столов с временными слотами."""
+
 from pydantic import ConfigDict
 
 from schemas.base import BaseSchema

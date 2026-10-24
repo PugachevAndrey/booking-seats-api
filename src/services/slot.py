@@ -1,3 +1,5 @@
+"""Бизнес-логика временных слотов."""
+
 from datetime import time
 from typing import Any
 

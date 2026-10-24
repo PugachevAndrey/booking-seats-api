@@ -1,3 +1,5 @@
+"""Создание и проверка JWT-токенов."""
+
 from datetime import datetime, timedelta, timezone
 from typing import Any
 

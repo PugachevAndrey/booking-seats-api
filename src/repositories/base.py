@@ -1,10 +1,12 @@
+"""Базовый CRUD-класс для репозиториев."""
+
 from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-ModelType = TypeVar("ModelType")
+ModelType = TypeVar('ModelType')
 
 
 class CRUDBase(Generic[ModelType]):

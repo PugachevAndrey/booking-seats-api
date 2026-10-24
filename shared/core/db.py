@@ -1,3 +1,5 @@
+"""Настройка асинхронного движка и сессий SQLAlchemy."""
+
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
