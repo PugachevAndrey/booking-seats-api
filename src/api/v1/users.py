@@ -1,7 +1,6 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.v1.deps import (
@@ -11,6 +10,7 @@ from api.v1.deps import (
     get_optional_user,
 )
 from schemas.user import UserCreate, UserInfo, UserUpdate
+from services.booking import user_has_booking_in_cafe
 from services.cafe_manager import get_manager_cafe_id
 from services.user import (
     create_user,
@@ -20,7 +20,6 @@ from services.user import (
 )
 from shared.core.enums import UserRole
 from shared.core.errors import NotFoundError, PermissionDeniedError
-from shared.models.booking import Booking
 from shared.models.user import User
 
 router = APIRouter(prefix='/users', tags=['Пользователи'])
@@ -39,7 +38,8 @@ def _prepare_update_fields(
             fields[key] = raw[key]
 
     if 'password' in raw and raw['password'] is not None:
-        fields['password_hash'] = User.hash_password(raw['password'])
+        password_value = raw['password']
+    fields['password_hash'] = User.hash_password(password_value)
 
     if allow_admin_fields:
         if 'role' in raw and raw['role'] is not None:
@@ -57,19 +57,16 @@ async def _ensure_manager_sees_user(
     user_id: int,
 ) -> None:
     """Менеджер может видеть только пользователей своего кафе."""
-    if current_user.role == UserRole.ADMIN:
+    await get_user(session, user_id)
+
+    if current_user.role == 'admin':
         return
 
     cafe_id = await get_manager_cafe_id(session, current_user.id)
     if cafe_id is None:
         raise PermissionDeniedError('Менеджер не привязан к кафе.')
 
-    stmt = select(Booking).where(
-        Booking.user_id == user_id,
-        Booking.cafe_id == cafe_id,
-    )
-    result = await session.execute(stmt)
-    if result.scalar_one_or_none() is None:
+    if not await user_has_booking_in_cafe(session, user_id, cafe_id):
         raise NotFoundError(f'Пользователь {user_id} не найден.')
 
 
@@ -111,7 +108,7 @@ async def register_user(
         email=payload.get('email'),
         phone=payload.get('phone'),
         tg_id=payload.get('tg_id'),
-        password_hash=User.hash_password(data.password),
+        password_hash=User.hash_password(data.password.get_secret_value()),
     )
 
 

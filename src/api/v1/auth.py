@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.v1.deps import get_db
 from repositories.user import user_crud
 from schemas.base import AuthSchema
-from shared.core.errors import UnauthorizedError
+from shared.core.errors import ValidationError
 from shared.core.security import create_access_token
 
 router = APIRouter(prefix='/auth', tags=['Аутентификация'])
@@ -25,6 +25,11 @@ class TokenResponse(BaseModel):
     response_model=TokenResponse,
     status_code=status.HTTP_200_OK,
     summary='Получение токена авторизации',
+    responses={
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {
+            'description': 'Неверный логин или пароль',
+        },
+    },
 )
 async def login(
     data: AuthSchema,
@@ -36,10 +41,10 @@ async def login(
         session=session,
     )
     if user is None or not user.is_active:
-        raise UnauthorizedError('Неверный логин или пароль.')
+        raise ValidationError('Неверный логин или пароль.')
 
     if not user.check_password(data.password.get_secret_value()):
-        raise UnauthorizedError('Неверный логин или пароль.')
+        raise ValidationError('Неверный логин или пароль.')
 
     token = create_access_token(subject=user.id)
     return TokenResponse(access_token=token)

@@ -2,7 +2,7 @@ from datetime import date
 from typing import Any
 
 from pydantic import BaseModel
-from sqlalchemy import delete, select
+from sqlalchemy import delete, exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from repositories.booking import booking_crud
@@ -304,10 +304,7 @@ def _validate_status_change(
             'Менять статус бронирования может только персонал.',
         )
     validate_booking_status(changes['status'], BOOKING_STATUSES)
-    if (
-        _as_status(changes['status']) is BookingStatus.COMPLETED
-        and booking.booking_date > date.today()
-    ):
+    if _as_status(changes['status']) is BookingStatus.COMPLETED and booking.booking_date > date.today():
         raise ValidationError(
             'Нельзя завершить бронь на будущую дату.',
         )
@@ -466,3 +463,19 @@ async def delete_booking(
         db_obj=booking,
         obj_in=BookingUpdate(is_active=False, status=status),
     )
+
+
+async def user_has_booking_in_cafe(
+    session: AsyncSession,
+    user_id: int,
+    cafe_id: int,
+) -> bool:
+    """Проверяет, есть ли у пользователя бронирования в заданном кафе."""
+    stmt = select(
+        exists().where(
+            Booking.user_id == user_id,
+            Booking.cafe_id == cafe_id,
+        ),
+    )
+    result = await session.execute(stmt)
+    return result.scalar_one()

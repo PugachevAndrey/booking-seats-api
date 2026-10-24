@@ -1,6 +1,7 @@
 from collections.abc import AsyncGenerator
 from typing import Annotated
 
+import jwt
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from services.access import is_admin, is_staff
 from services.user import get_user
 from shared.core.db import get_session
-from shared.core.errors import PermissionDeniedError
+from shared.core.errors import NotFoundError, PermissionDeniedError, UnauthorizedError
 from shared.core.security import decode_access_token
 from shared.models.user import User
 
@@ -34,19 +35,22 @@ async def get_current_user(
 
     try:
         payload = decode_access_token(credentials.credentials)
-    except Exception:
-        raise PermissionDeniedError('Недействительный токен.')
+    except jwt.PyJWTError:
+        raise UnauthorizedError('Недействительный токен.')
 
     subject = payload.get('sub')
     if subject is None:
-        raise PermissionDeniedError('Недействительный токен.')
+        raise UnauthorizedError('Недействительный токен.')
 
     try:
         user_id = int(subject)
     except (TypeError, ValueError):
-        raise PermissionDeniedError('Недействительный токен.')
+        raise UnauthorizedError('Недействительный токен.')
 
-    return await get_user(session, user_id)
+    try:
+        return await get_user(session, user_id)
+    except NotFoundError:
+        raise UnauthorizedError('Недействительный токен.')
 
 
 async def get_current_staff(
@@ -82,7 +86,7 @@ async def get_optional_user(
     try:
         payload = decode_access_token(credentials.credentials)
         user_id = int(payload['sub'])
-    except Exception:
+    except (jwt.PyJWTError, KeyError, TypeError, ValueError):
         return None
     try:
         return await get_user(session, user_id)
