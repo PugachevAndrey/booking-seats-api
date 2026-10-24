@@ -1,3 +1,5 @@
+"""Репозиторий кафе."""
+
 from repositories.base import CRUDBase
 from shared.models.cafe import Cafe
 

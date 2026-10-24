@@ -1,3 +1,5 @@
+"""Точка входа: сборка FastAPI-приложения и подключение роутеров."""
+
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
@@ -5,11 +7,9 @@ import uvicorn
 from fastapi import FastAPI
 
 from api.v1 import (
-    actions,
     auth,
     booking,
     cafes,
-    dishes,
     media,
     slots,
     tables,
@@ -40,8 +40,6 @@ app.include_router(cafes.router, prefix='/api/v1')
 app.include_router(tables.router, prefix='/api/v1')
 app.include_router(slots.router, prefix='/api/v1')
 app.include_router(booking.router, prefix='/api/v1')
-app.include_router(dishes.router, prefix='/api/v1')
-app.include_router(actions.router, prefix='/api/v1')
 app.include_router(media.router, prefix='/api/v1')
 
 

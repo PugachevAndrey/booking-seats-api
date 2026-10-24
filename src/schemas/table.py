@@ -1,3 +1,5 @@
+"""Схемы столов."""
+
 from pydantic import MISSING, ConfigDict, Field
 
 from .base import BaseSchema, MainSchema

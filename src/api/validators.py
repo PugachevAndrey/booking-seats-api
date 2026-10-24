@@ -1,3 +1,5 @@
+"""Валидаторы API: проверка учётных данных при входе."""
+
 from models.user import User
 from sqlalchemy.ext.asyncio import AsyncSession
 

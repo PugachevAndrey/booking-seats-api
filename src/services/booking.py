@@ -1,3 +1,5 @@
+"""Бизнес-логика бронирований."""
+
 from datetime import date
 from typing import Any
 

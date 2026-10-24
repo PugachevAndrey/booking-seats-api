@@ -1,3 +1,5 @@
+"""Роутер бронирований."""
+
 from datetime import date
 from typing import Annotated
 

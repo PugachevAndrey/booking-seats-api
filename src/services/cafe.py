@@ -1,3 +1,5 @@
+"""Бизнес-логика кафе."""
+
 import uuid
 from typing import Any
 

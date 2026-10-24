@@ -1,3 +1,5 @@
+"""Схемы бронирований."""
+
 from datetime import date
 
 from pydantic import MISSING, ConfigDict, Field

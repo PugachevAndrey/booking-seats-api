@@ -1,3 +1,5 @@
+"""Импорт всех моделей для Alembic (target_metadata)."""
+
 from shared.core.base_model import Base
 from shared.models.booking import Booking
 from shared.models.booking_tables_slot import BookingTablesSlot

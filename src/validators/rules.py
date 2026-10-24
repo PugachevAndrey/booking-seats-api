@@ -1,3 +1,5 @@
+"""Правила валидации бизнес-данных."""
+
 from datetime import date, time
 
 from fastapi.exceptions import RequestValidationError
@@ -42,8 +44,7 @@ def ensure_max_length(
     """Проверяет максимальную длину строки."""
     if len(value) > max_length:
         raise ValidationError(
-            f'{field_title} не должно быть длиннее '
-            f'{max_length} символов.',
+            f'{field_title} не должно быть длиннее {max_length} символов.',
         )
 
 
@@ -52,8 +53,7 @@ def validate_user_password(password: str) -> None:
     ensure_text_not_blank(password, 'Пароль')
     if len(password) < PASSWORD_MIN_LENGTH:
         raise ValidationError(
-            'Пароль должен содержать не менее '
-            f'{PASSWORD_MIN_LENGTH} символов.',
+            f'Пароль должен содержать не менее {PASSWORD_MIN_LENGTH} символов.',
         )
 
 
@@ -126,8 +126,7 @@ def validate_cafe_phone(phone: str) -> None:
     digits = sum(character.isdigit() for character in phone)
     if digits < CAFE_PHONE_MIN_DIGITS:
         raise ValidationError(
-            'Телефон должен содержать не менее '
-            f'{CAFE_PHONE_MIN_DIGITS} цифр.',
+            f'Телефон должен содержать не менее {CAFE_PHONE_MIN_DIGITS} цифр.',
         )
 
 
@@ -233,9 +232,7 @@ def build_validation_message(
         return DEFAULT_VALIDATION_MESSAGE
 
     first_error = validation_errors[0]
-    location = '.'.join(
-        str(part) for part in first_error.get('loc', ())
-    )
+    location = '.'.join(str(part) for part in first_error.get('loc', ()))
     reason = first_error.get('msg', '')
 
     if location and reason:
