@@ -11,7 +11,6 @@ class TableShortInfo(BaseSchema):
     id: int
     description: str | None
     seat_number: int
-    # response_model_exclude_none=True добавить в эндпойнт
 
     model_config = ConfigDict(from_attributes=True, extra='forbid')
 
