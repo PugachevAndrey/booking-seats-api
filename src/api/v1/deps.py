@@ -33,7 +33,7 @@ async def get_current_user(
 ) -> User:
     """Возвращает текущего пользователя по JWT из заголовка Authorization."""
     if credentials is None or not credentials.credentials:
-        raise PermissionDeniedError('Требуется авторизация.')
+        raise UnauthorizedError('Требуется авторизация.')
 
     try:
         payload = decode_access_token(credentials.credentials)

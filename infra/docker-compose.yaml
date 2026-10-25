@@ -7,6 +7,11 @@ services:
       - ./.env
     ports:
       - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
 
   db:
     image: postgres:17-alpine
@@ -52,8 +57,10 @@ services:
     env_file:
       - ./.env
     depends_on:
-      - rabbitmq
-      - db
+      rabbitmq:
+        condition: service_started
+      db:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:

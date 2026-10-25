@@ -19,7 +19,7 @@ class BookingInfo(MainSchema):
     id: int
     user: UserShortInfo
     cafe: CafeShortInfo
-    tables_slots: BookingTableSlotShortInfo
+    tables_slots: list[BookingTableSlotShortInfo]
     guest_number: int
     note: str | None
     status: BookingStatus

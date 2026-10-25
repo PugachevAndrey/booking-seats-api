@@ -45,7 +45,7 @@ class _UserCreate(BaseModel):
 async def get_user(session: AsyncSession, user_id: int) -> User:
     """Возвращает активного пользователя по ID."""
     user = await user_crud.get(session=session, obj_id=user_id)
-    if user is None or not user.is_active:
+    if user is None:
         raise NotFoundError(f'Пользователь {user_id} не найден.')
     return user
 

@@ -3,10 +3,11 @@
 from datetime import time
 from typing import Any
 
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from repositories.slot import slot_crud
-from schemas.slot import TimeSlotCreate, TimeSlotUpdate
+from schemas.slot import TimeSlotUpdate
 from shared.core.errors import NotFoundError, ValidationError
 from shared.models.slot import Slot
 from validators import (
@@ -20,6 +21,15 @@ SLOT_EDITABLE_FIELDS = frozenset(
     {'start_time', 'end_time', 'description'},
 )
 SLOT_TIME_FIELDS = frozenset({'start_time', 'end_time'})
+
+
+class _SlotCreate(BaseModel):
+    """Внутренняя схема создания слота."""
+
+    cafe_id: int
+    start_time: time
+    end_time: time
+    description: str | None = None
 
 
 async def get_slot(session: AsyncSession, slot_id: int) -> Slot:
@@ -67,9 +77,7 @@ async def create_slot(
     if description is not None:
         payload['description'] = description
 
-    obj_in = TimeSlotCreate(**payload).model_copy(
-        update={'cafe_id': cafe_id},
-    )
+    obj_in = _SlotCreate(cafe_id=cafe_id, **payload)
 
     return await slot_crud.create(session=session, obj_in=obj_in)
 
