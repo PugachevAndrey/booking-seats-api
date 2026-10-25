@@ -1,6 +1,6 @@
 """Бизнес-логика бронирований."""
 
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 from pydantic import BaseModel
@@ -358,6 +358,13 @@ async def create_booking(
     pairs = _normalize_pairs(tables_slots)
     if not pairs:
         raise ValidationError('Нужно указать хотя бы один стол и слот.')
+
+    now = datetime.now()
+    if booking_date == now.date():
+        for _, slot_id in pairs:
+            slot = await slot_crud.get(session=session, obj_id=slot_id)
+            if slot is not None and slot.start_time <= now.time():
+                raise ValidationError('Нельзя бронировать на прошедшее время.')
 
     await _ensure_pairs_free(session, pairs, cafe_id, booking_date)
 

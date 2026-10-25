@@ -2,10 +2,11 @@
 
 from typing import Any
 
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from repositories.table import table_crud
-from schemas.table import TableCreate, TableUpdate
+from schemas.table import TableUpdate
 from shared.core.errors import NotFoundError, ValidationError
 from shared.models.table import Table
 from validators import (
@@ -16,6 +17,14 @@ from validators import (
 from .access import ensure_cafe_access
 
 TABLE_EDITABLE_FIELDS = frozenset({'description', 'seat_number'})
+
+
+class _TableCreate(BaseModel):
+    """Внутренняя схема создания стола."""
+
+    cafe_id: int
+    description: str | None = None
+    seat_number: int
 
 
 async def get_table(session: AsyncSession, table_id: int) -> Table:
@@ -59,7 +68,7 @@ async def create_table(
     if description is not None:
         payload['description'] = description
 
-    obj_in = TableCreate(**payload).model_copy(update={'cafe_id': cafe_id})
+    obj_in = _TableCreate(cafe_id=cafe_id, **payload)
 
     return await table_crud.create(session=session, obj_in=obj_in)
 

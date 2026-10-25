@@ -41,9 +41,9 @@ def _prepare_update_fields(
 
     if 'password' in raw and raw['password'] is not None:
         value = raw['password']
-    if hasattr(value, 'get_secret_value'):
-        value = value.get_secret_value()
-    fields['password'] = value
+        if hasattr(value, 'get_secret_value'):
+            value = value.get_secret_value()
+        fields['password'] = value
 
     if allow_admin_fields:
         if 'role' in raw and raw['role'] is not None:

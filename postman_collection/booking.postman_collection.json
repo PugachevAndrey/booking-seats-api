@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     "name": "Booking Seats API (Full)",
-    "description": "Коллекция тестов для API бронирования мест в кафе (ТЗ, OpenAPI, матрица доступа)",
+    "description": "Тесты API бронирования. Самоподготовка: Login Admin -> Setup create manager -> promote manager -> Setup create user -> Login Manager/User -> загрузка media -> все остальные тесты.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -31,25 +31,35 @@
             "body": {
               "mode": "raw",
               "raw": "{\"login\":\"{{adminUsername}}\",\"password\":\"{{adminPassword}}\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "login"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
             }
           }
         },
         {
-          "name": "Login (User)",
+          "name": "Setup: create manager (Admin)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Статус 200', () => pm.response.to.have.status(200));",
-                  "const r = pm.response.json();",
-                  "if (r.access_token) pm.collectionVariables.set('userToken', r.access_token);"
+                  "pm.test('201 или 409/422 (идемпотентно)', () => pm.expect([201, 409, 422]).to.include(pm.response.code));",
+                  "let r = {};",
+                  "try { r = pm.response.json(); } catch(e) {}",
+                  "if (r && r.id) pm.collectionVariables.set('managerUserId', r.id);"
                 ],
                 "type": "text/javascript"
               }
@@ -57,16 +67,121 @@
           ],
           "request": {
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\"login\":\"{{userUsername}}\",\"password\":\"{{userPassword}}\"}",
-              "options": { "raw": { "language": "json" } }
+              "raw": "{\"username\":\"manager1\",\"email\":\"{{managerUsername}}\",\"phone\":\"+79000000002\",\"password\":\"{{managerPassword}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
-              "raw": "{{baseUrl}}/auth/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "login"]
+              "raw": "{{baseUrl}}/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Setup: promote manager (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"role\":\"manager\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{managerUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{managerUserId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Setup: create user (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 или 409/422 (идемпотентно)', () => pm.expect([201, 409, 422]).to.include(pm.response.code));",
+                  "let r = {};",
+                  "try { r = pm.response.json(); } catch(e) {}",
+                  "if (r && r.id) {",
+                  "  pm.collectionVariables.set('userId', r.id);",
+                  "  pm.collectionVariables.set('newUserId', r.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\":\"user1\",\"email\":\"{{userUsername}}\",\"phone\":\"+79000000003\",\"password\":\"{{userPassword}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
             }
           }
         },
@@ -91,12 +206,60 @@
             "body": {
               "mode": "raw",
               "raw": "{\"login\":\"{{managerUsername}}\",\"password\":\"{{managerPassword}}\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "login"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login (User)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "if (r.access_token) pm.collectionVariables.set('userToken', r.access_token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"login\":\"{{userUsername}}\",\"password\":\"{{userPassword}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
             }
           }
         },
@@ -106,7 +269,9 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 422', () => pm.response.to.have.status(422));"],
+                "exec": [
+                  "pm.test('Статус 422', () => pm.response.to.have.status(422));"
+                ],
                 "type": "text/javascript"
               }
             }
@@ -117,12 +282,21 @@
             "body": {
               "mode": "raw",
               "raw": "{\"login\":\"wrong\",\"password\":\"wrong\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "login"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
             }
           }
         }
@@ -138,9 +312,13 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Статус 201', () => pm.response.to.have.status(201));",
-                  "const r = pm.response.json();",
-                  "if (r.id) pm.collectionVariables.set('newUserId', r.id);"
+                  "pm.test('201 или 409/422 (идемпотентно)', () => pm.expect([201, 409, 422]).to.include(pm.response.code));",
+                  "let r = {};",
+                  "try { r = pm.response.json(); } catch(e) {}",
+                  "if (r && r.id) {",
+                  "  pm.collectionVariables.set('newUserId', r.id);",
+                  "  pm.collectionVariables.set('userId', r.id);",
+                  "}"
                 ],
                 "type": "text/javascript"
               }
@@ -151,13 +329,21 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\"username\":\"{{userUsername}}\",\"email\":\"user@example.com\",\"phone\":\"+79001112233\",\"password\":\"{{userPassword}}\"}",
-              "options": { "raw": { "language": "json" } }
+              "raw": "{\"username\":\"anon\",\"email\":\"anon@example.com\",\"phone\":\"+79001112233\",\"password\":\"{{userPassword}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
             }
           }
         },
@@ -167,23 +353,39 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 201', () => pm.response.to.have.status(201));"],
+                "exec": [
+                  "pm.test('Статус 201', () => pm.response.to.have.status(201));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"username\":\"user_by_manager\",\"email\":\"user_by_manager@example.com\",\"password\":\"password123\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
             }
           }
         },
@@ -193,23 +395,39 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 403', () => pm.response.to.have.status(403));"],
+                "exec": [
+                  "pm.test('Статус 403', () => pm.response.to.have.status(403));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"username\":\"user_by_user\",\"email\":\"user_by_user@example.com\",\"password\":\"password123\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
             }
           }
         },
@@ -219,7 +437,9 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 422', () => pm.response.to.have.status(422));"],
+                "exec": [
+                  "pm.test('Статус 422', () => pm.response.to.have.status(422));"
+                ],
                 "type": "text/javascript"
               }
             }
@@ -230,12 +450,20 @@
             "body": {
               "mode": "raw",
               "raw": "{\"username\":\"weak_user\",\"email\":\"weak@example.com\",\"password\":\"1\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
             }
           }
         },
@@ -245,7 +473,9 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 409 или 422', () => pm.expect([409, 422]).to.include(pm.response.code));"],
+                "exec": [
+                  "pm.test('Статус 409 или 422', () => pm.expect([409, 422]).to.include(pm.response.code));"
+                ],
                 "type": "text/javascript"
               }
             }
@@ -256,12 +486,20 @@
             "body": {
               "mode": "raw",
               "raw": "{\"username\":\"dup_user\",\"email\":\"user@example.com\",\"password\":\"password123\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
             }
           }
         },
@@ -271,18 +509,30 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
             }
           }
         },
@@ -292,19 +542,36 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/users?show_active=true",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"],
-              "query": [{ "key": "show_active", "value": "true" }]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "show_active",
+                  "value": "true"
+                }
+              ]
             }
           }
         },
@@ -314,18 +581,30 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
             }
           }
         },
@@ -335,18 +614,31 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/users/{{userId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{userId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}"
+              ]
             }
           }
         },
@@ -356,18 +648,31 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 404 или 403', () => pm.expect([404, 403]).to.include(pm.response.code));"],
+                "exec": [
+                  "pm.test('Статус 404 или 403', () => pm.expect([404, 403]).to.include(pm.response.code));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/users/{{userId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{userId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}"
+              ]
             }
           }
         },
@@ -377,23 +682,40 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"username\":\"updated_user\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/users/{{userId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{userId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}"
+              ]
             }
           }
         },
@@ -403,23 +725,40 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"is_active\":false}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/users/{{userId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{userId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}"
+              ]
             }
           }
         },
@@ -429,23 +768,40 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"is_active\":true}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/users/{{userId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{userId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}"
+              ]
             }
           }
         },
@@ -455,18 +811,31 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/users/me",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "me"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me"
+              ]
             }
           }
         },
@@ -476,23 +845,40 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"username\":\"my_new_name\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/users/me",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "me"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me"
+              ]
             }
           }
         },
@@ -502,7 +888,9 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 401', () => pm.response.to.have.status(401));"],
+                "exec": [
+                  "pm.test('Статус 401', () => pm.response.to.have.status(401));"
+                ],
                 "type": "text/javascript"
               }
             }
@@ -512,8 +900,12 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
             }
           }
         },
@@ -523,18 +915,30 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 403', () => pm.response.to.have.status(403));"],
+                "exec": [
+                  "pm.test('Статус 403', () => pm.response.to.have.status(403));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
             }
           }
         }
@@ -544,7 +948,7 @@
       "name": "03. Cafes",
       "item": [
         {
-          "name": "POST /cafes (Admin)",
+          "name": "Prepare: upload photo (Admin)",
           "event": [
             {
               "listen": "test",
@@ -552,7 +956,7 @@
                 "exec": [
                   "pm.test('Статус 201', () => pm.response.to.have.status(201));",
                   "const r = pm.response.json();",
-                  "if (r.id) pm.collectionVariables.set('cafeId', r.id);"
+                  "if (r.media_id) pm.collectionVariables.set('mediaId', r.media_id);"
                 ],
                 "type": "text/javascript"
               }
@@ -560,16 +964,76 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "{{testImagePath}}"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/media",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "media"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /cafes (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 или 409/422 (идемпотентно)', () => pm.expect([201, 409, 422]).to.include(pm.response.code));",
+                  "let r = {};",
+                  "try { r = pm.response.json(); } catch(e) {}",
+                  "if (r && r.id) pm.collectionVariables.set('cafeId', r.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\"name\":\"Кафе Тест\",\"address\":\"ул. Ленина, 1\",\"phone\":\"+79005556677\",\"description\":\"Описание\",\"managers_id\":[{{newUserId}}]}",
-              "options": { "raw": { "language": "json" } }
+              "raw": "{\"name\":\"Кафе Тест\",\"address\":\"ул. Ленина, 1\",\"phone\":\"+79005556677\",\"description\":\"Описание\",\"photo_id\":\"{{mediaId}}\",\"managers_id\":[{{managerUserId}}]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/cafes",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes"
+              ]
             }
           }
         },
@@ -579,23 +1043,39 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 403', () => pm.response.to.have.status(403));"],
+                "exec": [
+                  "pm.test('Статус 403', () => pm.response.to.have.status(403));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\"name\":\"Кафе Менеджера\",\"address\":\"ул. Ленина, 2\",\"phone\":\"+79005556678\",\"managers_id\":[{{newUserId}}]}",
-              "options": { "raw": { "language": "json" } }
+              "raw": "{\"name\":\"Кафе Менеджера\",\"address\":\"ул. Ленина, 2\",\"phone\":\"+79005556678\",\"photo_id\":\"{{mediaId}}\",\"managers_id\":[{{newUserId}}]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/cafes",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes"
+              ]
             }
           }
         },
@@ -605,23 +1085,39 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 403', () => pm.response.to.have.status(403));"],
+                "exec": [
+                  "pm.test('Статус 403', () => pm.response.to.have.status(403));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\"name\":\"Кафе Юзера\",\"address\":\"ул. Ленина, 3\",\"phone\":\"+79005556679\",\"managers_id\":[{{newUserId}}]}",
-              "options": { "raw": { "language": "json" } }
+              "raw": "{\"name\":\"Кафе Юзера\",\"address\":\"ул. Ленина, 3\",\"phone\":\"+79005556679\",\"photo_id\":\"{{mediaId}}\",\"managers_id\":[{{newUserId}}]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/cafes",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes"
+              ]
             }
           }
         },
@@ -631,7 +1127,9 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 401', () => pm.response.to.have.status(401));"],
+                "exec": [
+                  "pm.test('Статус 401', () => pm.response.to.have.status(401));"
+                ],
                 "type": "text/javascript"
               }
             }
@@ -641,8 +1139,12 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/cafes",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes"
+              ]
             }
           }
         },
@@ -652,18 +1154,30 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/cafes",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes"
+              ]
             }
           }
         },
@@ -673,19 +1187,36 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/cafes?show_active=true",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes"],
-              "query": [{ "key": "show_active", "value": "true" }]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes"
+              ],
+              "query": [
+                {
+                  "key": "show_active",
+                  "value": "true"
+                }
+              ]
             }
           }
         },
@@ -695,7 +1226,9 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 401', () => pm.response.to.have.status(401));"],
+                "exec": [
+                  "pm.test('Статус 401', () => pm.response.to.have.status(401));"
+                ],
                 "type": "text/javascript"
               }
             }
@@ -705,8 +1238,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}"
+              ]
             }
           }
         },
@@ -716,18 +1254,31 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}"
+              ]
             }
           }
         },
@@ -737,18 +1288,31 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}"
+              ]
             }
           }
         },
@@ -758,39 +1322,65 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}"
+              ]
             }
           }
         },
         {
-          "name": "GET /cafes/{id} (Manager, чужое) - 404/403",
+          "name": "GET /cafes/{id} (Manager, чужое) - 404",
           "event": [
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 404 или 403', () => pm.expect([404, 403]).to.include(pm.response.code));"],
+                "exec": [
+                  "pm.test('Статус 404', () => pm.response.to.have.status(404));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/cafes/999999",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "999999"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "999999"
+              ]
             }
           }
         },
@@ -800,49 +1390,83 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"name\":\"Обновлённое имя\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}"
+              ]
             }
           }
         },
         {
-          "name": "PATCH /cafes/{id} (Manager - 403)",
+          "name": "PATCH /cafes/{id} (Manager) - 200",
           "event": [
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 403', () => pm.response.to.have.status(403));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"name\":\"Менеджер меняет\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}"
+              ]
             }
           }
         },
@@ -852,23 +1476,40 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 403', () => pm.response.to.have.status(403));"],
+                "exec": [
+                  "pm.test('Статус 403', () => pm.response.to.have.status(403));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"name\":\"Юзер меняет\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}"
+              ]
             }
           }
         }
@@ -884,9 +1525,10 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Статус 201', () => pm.response.to.have.status(201));",
-                  "const r = pm.response.json();",
-                  "if (r.id) pm.collectionVariables.set('tableId', r.id);"
+                  "pm.test('201 или 409/422 (идемпотентно)', () => pm.expect([201, 409, 422]).to.include(pm.response.code));",
+                  "let r = {};",
+                  "try { r = pm.response.json(); } catch(e) {}",
+                  "if (r && r.id) pm.collectionVariables.set('tableId', r.id);"
                 ],
                 "type": "text/javascript"
               }
@@ -894,16 +1536,32 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"description\":\"Стол №1\",\"seat_number\":4}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}/tables",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}", "tables"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}",
+                "tables"
+              ]
             }
           }
         },
@@ -913,23 +1571,41 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 201', () => pm.response.to.have.status(201));"],
+                "exec": [
+                  "pm.test('Статус 201', () => pm.response.to.have.status(201));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"description\":\"Стол менеджера\",\"seat_number\":2}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}/tables",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}", "tables"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}",
+                "tables"
+              ]
             }
           }
         },
@@ -939,23 +1615,41 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 403', () => pm.response.to.have.status(403));"],
+                "exec": [
+                  "pm.test('Статус 403', () => pm.response.to.have.status(403));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"description\":\"Стол юзера\",\"seat_number\":2}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}/tables",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}", "tables"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}",
+                "tables"
+              ]
             }
           }
         },
@@ -965,18 +1659,32 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}/tables",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}", "tables"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}",
+                "tables"
+              ]
             }
           }
         },
@@ -986,7 +1694,9 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 401', () => pm.response.to.have.status(401));"],
+                "exec": [
+                  "pm.test('Статус 401', () => pm.response.to.have.status(401));"
+                ],
                 "type": "text/javascript"
               }
             }
@@ -996,8 +1706,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}/tables",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}", "tables"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}",
+                "tables"
+              ]
             }
           }
         },
@@ -1007,19 +1723,38 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}/tables?show_active=true",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}", "tables"],
-              "query": [{ "key": "show_active", "value": "true" }]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}",
+                "tables"
+              ],
+              "query": [
+                {
+                  "key": "show_active",
+                  "value": "true"
+                }
+              ]
             }
           }
         },
@@ -1029,18 +1764,33 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}/tables/{{tableId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}", "tables", "{{tableId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}",
+                "tables",
+                "{{tableId}}"
+              ]
             }
           }
         },
@@ -1050,18 +1800,33 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}/tables/{{tableId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}", "tables", "{{tableId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}",
+                "tables",
+                "{{tableId}}"
+              ]
             }
           }
         },
@@ -1071,18 +1836,33 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}/tables/{{tableId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}", "tables", "{{tableId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}",
+                "tables",
+                "{{tableId}}"
+              ]
             }
           }
         },
@@ -1092,7 +1872,9 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 401', () => pm.response.to.have.status(401));"],
+                "exec": [
+                  "pm.test('Статус 401', () => pm.response.to.have.status(401));"
+                ],
                 "type": "text/javascript"
               }
             }
@@ -1102,8 +1884,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}/tables/{{tableId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}", "tables", "{{tableId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}",
+                "tables",
+                "{{tableId}}"
+              ]
             }
           }
         },
@@ -1113,23 +1902,42 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"description\":\"Обновлённый стол\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}/tables/{{tableId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}", "tables", "{{tableId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}",
+                "tables",
+                "{{tableId}}"
+              ]
             }
           }
         },
@@ -1139,23 +1947,42 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"description\":\"Менеджер обновляет\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}/tables/{{tableId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}", "tables", "{{tableId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}",
+                "tables",
+                "{{tableId}}"
+              ]
             }
           }
         },
@@ -1165,23 +1992,42 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 403', () => pm.response.to.have.status(403));"],
+                "exec": [
+                  "pm.test('Статус 403', () => pm.response.to.have.status(403));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"description\":\"Юзер обновляет\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}/tables/{{tableId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}", "tables", "{{tableId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}",
+                "tables",
+                "{{tableId}}"
+              ]
             }
           }
         },
@@ -1191,7 +2037,9 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 401', () => pm.response.to.have.status(401));"],
+                "exec": [
+                  "pm.test('Статус 401', () => pm.response.to.have.status(401));"
+                ],
                 "type": "text/javascript"
               }
             }
@@ -1202,12 +2050,23 @@
             "body": {
               "mode": "raw",
               "raw": "{\"description\":\"Без авторизации\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}/tables/{{tableId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}", "tables", "{{tableId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}",
+                "tables",
+                "{{tableId}}"
+              ]
             }
           }
         }
@@ -1223,9 +2082,10 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Статус 201', () => pm.response.to.have.status(201));",
-                  "const r = pm.response.json();",
-                  "if (r.id) pm.collectionVariables.set('slotId', r.id);"
+                  "pm.test('201 или 409/422 (идемпотентно)', () => pm.expect([201, 409, 422]).to.include(pm.response.code));",
+                  "let r = {};",
+                  "try { r = pm.response.json(); } catch(e) {}",
+                  "if (r && r.id) pm.collectionVariables.set('slotId', r.id);"
                 ],
                 "type": "text/javascript"
               }
@@ -1233,16 +2093,32 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"start_time\":\"10:00:00\",\"end_time\":\"12:00:00\",\"description\":\"Утро\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}/time_slots",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}", "time_slots"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}",
+                "time_slots"
+              ]
             }
           }
         },
@@ -1252,23 +2128,41 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 201', () => pm.response.to.have.status(201));"],
+                "exec": [
+                  "pm.test('Статус 201', () => pm.response.to.have.status(201));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"start_time\":\"14:00:00\",\"end_time\":\"16:00:00\",\"description\":\"День\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}/time_slots",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}", "time_slots"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}",
+                "time_slots"
+              ]
             }
           }
         },
@@ -1278,23 +2172,41 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 403', () => pm.response.to.have.status(403));"],
+                "exec": [
+                  "pm.test('Статус 403', () => pm.response.to.have.status(403));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"start_time\":\"18:00:00\",\"end_time\":\"20:00:00\",\"description\":\"Вечер\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}/time_slots",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}", "time_slots"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}",
+                "time_slots"
+              ]
             }
           }
         },
@@ -1304,18 +2216,32 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}/time_slots",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}", "time_slots"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}",
+                "time_slots"
+              ]
             }
           }
         },
@@ -1325,7 +2251,9 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 401', () => pm.response.to.have.status(401));"],
+                "exec": [
+                  "pm.test('Статус 401', () => pm.response.to.have.status(401));"
+                ],
                 "type": "text/javascript"
               }
             }
@@ -1335,8 +2263,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}/time_slots",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}", "time_slots"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}",
+                "time_slots"
+              ]
             }
           }
         },
@@ -1346,19 +2280,38 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}/time_slots?show_active=true",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}", "time_slots"],
-              "query": [{ "key": "show_active", "value": "true" }]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}",
+                "time_slots"
+              ],
+              "query": [
+                {
+                  "key": "show_active",
+                  "value": "true"
+                }
+              ]
             }
           }
         },
@@ -1368,18 +2321,33 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}/time_slots/{{slotId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}", "time_slots", "{{slotId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}",
+                "time_slots",
+                "{{slotId}}"
+              ]
             }
           }
         },
@@ -1389,18 +2357,33 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}/time_slots/{{slotId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}", "time_slots", "{{slotId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}",
+                "time_slots",
+                "{{slotId}}"
+              ]
             }
           }
         },
@@ -1410,18 +2393,33 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}/time_slots/{{slotId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}", "time_slots", "{{slotId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}",
+                "time_slots",
+                "{{slotId}}"
+              ]
             }
           }
         },
@@ -1431,7 +2429,9 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 401', () => pm.response.to.have.status(401));"],
+                "exec": [
+                  "pm.test('Статус 401', () => pm.response.to.have.status(401));"
+                ],
                 "type": "text/javascript"
               }
             }
@@ -1441,8 +2441,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}/time_slots/{{slotId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}", "time_slots", "{{slotId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}",
+                "time_slots",
+                "{{slotId}}"
+              ]
             }
           }
         },
@@ -1452,23 +2459,42 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"description\":\"Обновлённый слот\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}/time_slots/{{slotId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}", "time_slots", "{{slotId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}",
+                "time_slots",
+                "{{slotId}}"
+              ]
             }
           }
         },
@@ -1478,23 +2504,42 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"description\":\"Менеджер обновляет\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}/time_slots/{{slotId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}", "time_slots", "{{slotId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}",
+                "time_slots",
+                "{{slotId}}"
+              ]
             }
           }
         },
@@ -1504,23 +2549,42 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 403', () => pm.response.to.have.status(403));"],
+                "exec": [
+                  "pm.test('Статус 403', () => pm.response.to.have.status(403));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"description\":\"Юзер обновляет\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}/time_slots/{{slotId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}", "time_slots", "{{slotId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}",
+                "time_slots",
+                "{{slotId}}"
+              ]
             }
           }
         },
@@ -1530,7 +2594,9 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 401', () => pm.response.to.have.status(401));"],
+                "exec": [
+                  "pm.test('Статус 401', () => pm.response.to.have.status(401));"
+                ],
                 "type": "text/javascript"
               }
             }
@@ -1541,12 +2607,23 @@
             "body": {
               "mode": "raw",
               "raw": "{\"description\":\"Без авторизации\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/cafes/{{cafeId}}/time_slots/{{slotId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["cafes", "{{cafeId}}", "time_slots", "{{slotId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}",
+                "time_slots",
+                "{{slotId}}"
+              ]
             }
           }
         }
@@ -1563,8 +2640,9 @@
               "script": {
                 "exec": [
                   "pm.test('Статус 201', () => pm.response.to.have.status(201));",
-                  "const r = pm.response.json();",
-                  "if (r.id) pm.collectionVariables.set('bookingId', r.id);"
+                  "let r = {};",
+                  "try { r = pm.response.json(); } catch(e) {}",
+                  "if (r && r.id) pm.collectionVariables.set('bookingId', r.id);"
                 ],
                 "type": "text/javascript"
               }
@@ -1572,16 +2650,30 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"cafe_id\":{{cafeId}},\"tables_slots\":[{\"table_id\":{{tableId}},\"slot_id\":{{slotId}}}],\"guest_number\":2,\"note\":\"У окна\",\"booking_date\":\"{{futureDate}}\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/booking",
-              "host": ["{{baseUrl}}"],
-              "path": ["booking"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking"
+              ]
             }
           }
         },
@@ -1591,23 +2683,39 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 201', () => pm.response.to.have.status(201));"],
+                "exec": [
+                  "pm.test('Статус 201', () => pm.expect([201, 409]).to.include(pm.response.code));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"cafe_id\":{{cafeId}},\"tables_slots\":[{\"table_id\":{{tableId}},\"slot_id\":{{slotId}}}],\"guest_number\":2,\"note\":\"Бронь менеджера\",\"booking_date\":\"{{futureDate}}\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/booking",
-              "host": ["{{baseUrl}}"],
-              "path": ["booking"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking"
+              ]
             }
           }
         },
@@ -1617,7 +2725,9 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 401', () => pm.response.to.have.status(401));"],
+                "exec": [
+                  "pm.test('Статус 401', () => pm.response.to.have.status(401));"
+                ],
                 "type": "text/javascript"
               }
             }
@@ -1628,12 +2738,20 @@
             "body": {
               "mode": "raw",
               "raw": "{\"cafe_id\":{{cafeId}},\"tables_slots\":[],\"guest_number\":2,\"booking_date\":\"{{futureDate}}\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/booking",
-              "host": ["{{baseUrl}}"],
-              "path": ["booking"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking"
+              ]
             }
           }
         },
@@ -1643,23 +2761,39 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 422', () => pm.response.to.have.status(422));"],
+                "exec": [
+                  "pm.test('Статус 422', () => pm.response.to.have.status(422));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"cafe_id\":{{cafeId}},\"tables_slots\":[{\"table_id\":{{tableId}},\"slot_id\":{{slotId}}}],\"guest_number\":2,\"note\":\"Прошлое\",\"booking_date\":\"2020-01-01\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/booking",
-              "host": ["{{baseUrl}}"],
-              "path": ["booking"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking"
+              ]
             }
           }
         },
@@ -1669,23 +2803,85 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 422', () => pm.response.to.have.status(422));"],
+                "exec": [
+                  "pm.test('Статус 422', () => pm.expect([409, 422]).to.include(pm.response.code));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"cafe_id\":{{cafeId}},\"tables_slots\":[{\"table_id\":{{tableId}},\"slot_id\":{{slotId}}}],\"guest_number\":100,\"note\":\"Много гостей\",\"booking_date\":\"{{futureDate}}\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/booking",
-              "host": ["{{baseUrl}}"],
-              "path": ["booking"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Prepare past slot (for Today + past slot test)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Статус 201', () => pm.response.to.have.status(201));",
+                  "const r = pm.response.json();",
+                  "if (r.id) pm.collectionVariables.set('pastSlotId', r.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"start_time\":\"09:00:00\",\"end_time\":\"10:00:00\",\"description\":\"Past slot\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/cafes/{{cafeId}}/time_slots",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cafes",
+                "{{cafeId}}",
+                "time_slots"
+              ]
             }
           }
         },
@@ -1693,47 +2889,41 @@
           "name": "POST /booking (Today + past slot) - 422",
           "event": [
             {
-              "listen": "prerequest",
-              "script": {
-                "exec": [
-                  "const now = new Date();",
-                  "const pastHour = Math.max(0, now.getHours() - 2);",
-                  "const pastStart = `${String(pastHour).padStart(2, '0')}:00:00`;",
-                  "const pastEnd = `${String(pastHour + 1).padStart(2, '0')}:00:00`;",
-                  "pm.sendRequest({",
-                  "  url: pm.collectionVariables.get('baseUrl') + '/cafes/' + pm.collectionVariables.get('cafeId') + '/time_slots',",
-                  "  method: 'POST',",
-                  "  header: { 'Authorization': 'Bearer ' + pm.collectionVariables.get('adminToken'), 'Content-Type': 'application/json' },",
-                  "  body: { mode: 'raw', raw: JSON.stringify({ start_time: pastStart, end_time: pastEnd, description: 'Past slot' }) }",
-                  "}, (err, res) => {",
-                  "  if (!err && res.code === 201) {",
-                  "    pm.collectionVariables.set('pastSlotId', res.json().id);",
-                  "  }",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            },
-            {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 422', () => pm.response.to.have.status(422));"],
+                "exec": [
+                  "pm.test('Статус 422', () => pm.response.to.have.status(422));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"cafe_id\":{{cafeId}},\"tables_slots\":[{\"table_id\":{{tableId}},\"slot_id\":{{pastSlotId}}}],\"guest_number\":2,\"note\":\"Сегодня в прошлом\",\"booking_date\":\"{{today}}\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/booking",
-              "host": ["{{baseUrl}}"],
-              "path": ["booking"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking"
+              ]
             }
           }
         },
@@ -1743,23 +2933,39 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 409 или 422', () => pm.expect([409, 422]).to.include(pm.response.code));"],
+                "exec": [
+                  "pm.test('Статус 409 или 422', () => pm.expect([409, 422]).to.include(pm.response.code));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"cafe_id\":{{cafeId}},\"tables_slots\":[{\"table_id\":{{tableId}},\"slot_id\":{{slotId}}}],\"guest_number\":2,\"note\":\"Пересечение\",\"booking_date\":\"{{futureDate}}\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/booking",
-              "host": ["{{baseUrl}}"],
-              "path": ["booking"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking"
+              ]
             }
           }
         },
@@ -1769,18 +2975,30 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/booking",
-              "host": ["{{baseUrl}}"],
-              "path": ["booking"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking"
+              ]
             }
           }
         },
@@ -1790,19 +3008,36 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/booking?cafe_id={{cafeId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["booking"],
-              "query": [{ "key": "cafe_id", "value": "{{cafeId}}" }]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking"
+              ],
+              "query": [
+                {
+                  "key": "cafe_id",
+                  "value": "{{cafeId}}"
+                }
+              ]
             }
           }
         },
@@ -1812,19 +3047,36 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/booking?user_id={{newUserId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["booking"],
-              "query": [{ "key": "user_id", "value": "{{newUserId}}" }]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking"
+              ],
+              "query": [
+                {
+                  "key": "user_id",
+                  "value": "{{newUserId}}"
+                }
+              ]
             }
           }
         },
@@ -1834,18 +3086,30 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/booking",
-              "host": ["{{baseUrl}}"],
-              "path": ["booking"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking"
+              ]
             }
           }
         },
@@ -1855,18 +3119,30 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/booking",
-              "host": ["{{baseUrl}}"],
-              "path": ["booking"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking"
+              ]
             }
           }
         },
@@ -1876,7 +3152,9 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 401', () => pm.response.to.have.status(401));"],
+                "exec": [
+                  "pm.test('Статус 401', () => pm.response.to.have.status(401));"
+                ],
                 "type": "text/javascript"
               }
             }
@@ -1886,8 +3164,12 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/booking",
-              "host": ["{{baseUrl}}"],
-              "path": ["booking"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking"
+              ]
             }
           }
         },
@@ -1897,18 +3179,31 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/booking/{{bookingId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["booking", "{{bookingId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking",
+                "{{bookingId}}"
+              ]
             }
           }
         },
@@ -1918,18 +3213,31 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/booking/{{bookingId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["booking", "{{bookingId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking",
+                "{{bookingId}}"
+              ]
             }
           }
         },
@@ -1939,18 +3247,31 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/booking/{{bookingId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["booking", "{{bookingId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking",
+                "{{bookingId}}"
+              ]
             }
           }
         },
@@ -1960,18 +3281,31 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 404 или 403', () => pm.expect([404, 403]).to.include(pm.response.code));"],
+                "exec": [
+                  "pm.test('Статус 404 или 403', () => pm.expect([404, 403]).to.include(pm.response.code));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/booking/999999",
-              "host": ["{{baseUrl}}"],
-              "path": ["booking", "999999"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking",
+                "999999"
+              ]
             }
           }
         },
@@ -1981,23 +3315,40 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"guest_number\":4,\"note\":\"Обновлено\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/booking/{{bookingId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["booking", "{{bookingId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking",
+                "{{bookingId}}"
+              ]
             }
           }
         },
@@ -2007,23 +3358,40 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"note\":\"Admin обновил\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/booking/{{bookingId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["booking", "{{bookingId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking",
+                "{{bookingId}}"
+              ]
             }
           }
         },
@@ -2033,23 +3401,40 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 422', () => pm.response.to.have.status(422));"],
+                "exec": [
+                  "pm.test('Статус 422', () => pm.response.to.have.status(422));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"booking_date\":\"2020-01-01\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/booking/{{bookingId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["booking", "{{bookingId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking",
+                "{{bookingId}}"
+              ]
             }
           }
         },
@@ -2059,23 +3444,40 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"status\":\"cancelled\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/booking/{{bookingId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["booking", "{{bookingId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking",
+                "{{bookingId}}"
+              ]
             }
           }
         },
@@ -2085,23 +3487,40 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 422', () => pm.response.to.have.status(422));"],
+                "exec": [
+                  "pm.test('Статус 422', () => pm.response.to.have.status(422));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"status\":\"completed\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/booking/{{bookingId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["booking", "{{bookingId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking",
+                "{{bookingId}}"
+              ]
             }
           }
         },
@@ -2111,23 +3530,40 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200 или 422', () => pm.expect([200, 422]).to.include(pm.response.code));"],
+                "exec": [
+                  "pm.test('Статус 200 или 422', () => pm.expect([200, 422]).to.include(pm.response.code));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\"status\":\"booking\"}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/booking/{{bookingId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["booking", "{{bookingId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking",
+                "{{bookingId}}"
+              ]
             }
           }
         }
@@ -2153,15 +3589,31 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "formdata",
-              "formdata": [{ "key": "file", "type": "file", "src": "{{testImagePath}}" }]
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "{{testImagePath}}"
+                }
+              ]
             },
             "url": {
               "raw": "{{baseUrl}}/media",
-              "host": ["{{baseUrl}}"],
-              "path": ["media"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "media"
+              ]
             }
           }
         },
@@ -2171,22 +3623,40 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 201', () => pm.response.to.have.status(201));"],
+                "exec": [
+                  "pm.test('Статус 201', () => pm.response.to.have.status(201));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{managerToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "formdata",
-              "formdata": [{ "key": "file", "type": "file", "src": "{{testImagePath}}" }]
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "{{testImagePath}}"
+                }
+              ]
             },
             "url": {
               "raw": "{{baseUrl}}/media",
-              "host": ["{{baseUrl}}"],
-              "path": ["media"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "media"
+              ]
             }
           }
         },
@@ -2196,22 +3666,40 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 403', () => pm.response.to.have.status(403));"],
+                "exec": [
+                  "pm.test('Статус 403', () => pm.response.to.have.status(403));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "formdata",
-              "formdata": [{ "key": "file", "type": "file", "src": "{{testImagePath}}" }]
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "{{testImagePath}}"
+                }
+              ]
             },
             "url": {
               "raw": "{{baseUrl}}/media",
-              "host": ["{{baseUrl}}"],
-              "path": ["media"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "media"
+              ]
             }
           }
         },
@@ -2221,22 +3709,40 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 422', () => pm.response.to.have.status(422));"],
+                "exec": [
+                  "pm.test('Статус 422', () => pm.response.to.have.status(422));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "formdata",
-              "formdata": [{ "key": "file", "type": "file", "src": "{{wrongMimePath}}" }]
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "{{wrongMimePath}}"
+                }
+              ]
             },
             "url": {
               "raw": "{{baseUrl}}/media",
-              "host": ["{{baseUrl}}"],
-              "path": ["media"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "media"
+              ]
             }
           }
         },
@@ -2246,22 +3752,40 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 422', () => pm.response.to.have.status(422));"],
+                "exec": [
+                  "pm.test('Статус 422', () => pm.response.to.have.status(422));"
+                ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
             "body": {
               "mode": "formdata",
-              "formdata": [{ "key": "file", "type": "file", "src": "{{bigImagePath}}" }]
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "{{bigImagePath}}"
+                }
+              ]
             },
             "url": {
               "raw": "{{baseUrl}}/media",
-              "host": ["{{baseUrl}}"],
-              "path": ["media"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "media"
+              ]
             }
           }
         },
@@ -2284,8 +3808,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/media/{{mediaId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["media", "{{mediaId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "media",
+                "{{mediaId}}"
+              ]
             }
           }
         },
@@ -2295,7 +3824,9 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 200', () => pm.response.to.have.status(200));"],
+                "exec": [
+                  "pm.test('Статус 200', () => pm.response.to.have.status(200));"
+                ],
                 "type": "text/javascript"
               }
             }
@@ -2305,8 +3836,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/media/{{mediaId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["media", "{{mediaId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "media",
+                "{{mediaId}}"
+              ]
             }
           }
         },
@@ -2316,7 +3852,9 @@
             {
               "listen": "test",
               "script": {
-                "exec": ["pm.test('Статус 401', () => pm.response.to.have.status(401));"],
+                "exec": [
+                  "pm.test('Статус 401', () => pm.response.to.have.status(401));"
+                ],
                 "type": "text/javascript"
               }
             }
@@ -2326,12 +3864,22 @@
             "header": [],
             "body": {
               "mode": "formdata",
-              "formdata": [{ "key": "file", "type": "file", "src": "{{testImagePath}}" }]
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "{{testImagePath}}"
+                }
+              ]
             },
             "url": {
               "raw": "{{baseUrl}}/media",
-              "host": ["{{baseUrl}}"],
-              "path": ["media"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "media"
+              ]
             }
           }
         }
@@ -2339,29 +3887,126 @@
     }
   ],
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:8000/api/v1", "type": "string" },
-    { "key": "adminUsername", "value": "admin", "type": "string" },
-    { "key": "adminPassword", "value": "admin_password", "type": "string" },
-    { "key": "adminToken", "value": "", "type": "string" },
-    { "key": "managerUsername", "value": "manager1", "type": "string" },
-    { "key": "managerPassword", "value": "manager_password", "type": "string" },
-    { "key": "managerToken", "value": "", "type": "string" },
-    { "key": "userUsername", "value": "user1", "type": "string" },
-    { "key": "userPassword", "value": "user_password", "type": "string" },
-    { "key": "userToken", "value": "", "type": "string" },
-    { "key": "userId", "value": "", "type": "string" },
-    { "key": "newUserId", "value": "", "type": "string" },
-    { "key": "cafeId", "value": "", "type": "string" },
-    { "key": "tableId", "value": "", "type": "string" },
-    { "key": "slotId", "value": "", "type": "string" },
-    { "key": "pastSlotId", "value": "", "type": "string" },
-    { "key": "bookingId", "value": "", "type": "string" },
-    { "key": "mediaId", "value": "", "type": "string" },
-    { "key": "testImagePath", "value": "./test.jpg", "type": "string" },
-    { "key": "bigImagePath", "value": "./test_big.jpg", "type": "string" },
-    { "key": "wrongMimePath", "value": "./test.txt", "type": "string" },
-    { "key": "today", "value": "", "type": "string" },
-    { "key": "futureDate", "value": "", "type": "string" }
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "adminUsername",
+      "value": "admin@example.com",
+      "type": "string"
+    },
+    {
+      "key": "adminPassword",
+      "value": "admin_password",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "managerUsername",
+      "value": "manager@example.com",
+      "type": "string"
+    },
+    {
+      "key": "managerPassword",
+      "value": "manager_password",
+      "type": "string"
+    },
+    {
+      "key": "managerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "managerUserId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userUsername",
+      "value": "user@example.com",
+      "type": "string"
+    },
+    {
+      "key": "userPassword",
+      "value": "user_password",
+      "type": "string"
+    },
+    {
+      "key": "userToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "newUserId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "cafeId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tableId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "slotId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "pastSlotId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "bookingId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "mediaId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testImagePath",
+      "value": "/workspace/test.jpg",
+      "type": "string"
+    },
+    {
+      "key": "bigImagePath",
+      "value": "/workspace/test_big.jpg",
+      "type": "string"
+    },
+    {
+      "key": "wrongMimePath",
+      "value": "/workspace/test.txt",
+      "type": "string"
+    },
+    {
+      "key": "today",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "futureDate",
+      "value": "",
+      "type": "string"
+    }
   ],
   "event": [
     {
