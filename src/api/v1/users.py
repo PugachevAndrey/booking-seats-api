@@ -40,8 +40,10 @@ def _prepare_update_fields(
             fields[key] = raw[key]
 
     if 'password' in raw and raw['password'] is not None:
-        password_value = raw['password']
-    fields['password_hash'] = User.hash_password(password_value)
+        value = raw['password']
+    if hasattr(value, 'get_secret_value'):
+        value = value.get_secret_value()
+    fields['password'] = value
 
     if allow_admin_fields:
         if 'role' in raw and raw['role'] is not None:
@@ -103,6 +105,10 @@ async def register_user(
     if current_user is not None and current_user.role == 'user':
         raise PermissionDeniedError('Нет прав на регистрацию пользователей.')
 
+    password_value = data.password
+    if hasattr(password_value, 'get_secret_value'):
+        password_value = password_value.get_secret_value()
+
     payload = data.model_dump(exclude_unset=True)
     return await create_user(
         session=session,
@@ -110,7 +116,7 @@ async def register_user(
         email=payload.get('email'),
         phone=payload.get('phone'),
         tg_id=payload.get('tg_id'),
-        password_hash=User.hash_password(data.password.get_secret_value()),
+        password=password_value,
     )
 
 

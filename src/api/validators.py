@@ -1,11 +1,11 @@
 """Валидаторы API: проверка учётных данных при входе."""
 
-from models.user import User
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from repositories.user import user_crud
 from schemas.base import AuthSchema
 from shared.core.errors import ValidationError
+from shared.models.user import User
 
 
 async def validate_login(
