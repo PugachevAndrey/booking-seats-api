@@ -26,8 +26,7 @@ class CRUDCafeManager(CRUDBase[CafeManager]):
         session: AsyncSession,
         cafe_id: int,
     ) -> list[CafeManager]:
-        """
-        Получить менеджеров кафе.
+        """Получить менеджеров кафе.
 
         Благодаря lazy="selectin" в модели, объекты user и cafe
         уже будут загружены и доступны через manager.user и manager.cafe.
