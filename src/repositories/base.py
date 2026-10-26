@@ -68,12 +68,3 @@ class CRUDBase(Generic[ModelType]):
         await session.flush()
         await session.refresh(db_obj)
         return db_obj
-
-    async def remove(
-        self,
-        session: AsyncSession,
-        db_obj: ModelType,
-    ) -> None:
-        """Удалить запись."""
-        await session.delete(db_obj)
-        await session.flush()
