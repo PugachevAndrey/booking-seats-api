@@ -1,9 +1,15 @@
 """Модель управляющих кафе."""
 
+from typing import TYPE_CHECKING
+
 from sqlalchemy import ForeignKey, Integer
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from shared.core.base_model import Base
+
+if TYPE_CHECKING:
+    from shared.models.cafe import Cafe
+    from shared.models.user import User
 
 
 class CafeManager(Base):
@@ -22,3 +28,6 @@ class CafeManager(Base):
         ForeignKey('cafes.id'),
         comment='ID кафе',
     )
+
+    user: Mapped["User"] = relationship(lazy="selectin")
+    cafe: Mapped["Cafe"] = relationship(lazy="selectin")
