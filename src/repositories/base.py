@@ -54,6 +54,18 @@ class CRUDBase(Generic[ModelType]):
         await session.refresh(db_obj)
         return db_obj
 
+    async def create_from_dict(
+        self,
+        session: AsyncSession,
+        data: dict[str, Any],
+    ) -> ModelType:
+        """Создать новую запись из словаря."""
+        db_obj = self.model(**data)
+        session.add(db_obj)
+        await session.flush()
+        await session.refresh(db_obj)
+        return db_obj
+
     async def update(
         self,
         session: AsyncSession,
@@ -68,12 +80,3 @@ class CRUDBase(Generic[ModelType]):
         await session.flush()
         await session.refresh(db_obj)
         return db_obj
-
-    async def remove(
-        self,
-        session: AsyncSession,
-        db_obj: ModelType,
-    ) -> None:
-        """Удалить запись."""
-        await session.delete(db_obj)
-        await session.flush()
