@@ -27,7 +27,7 @@ class TokenResponse(BaseModel):
     status_code=status.HTTP_200_OK,
     summary='Получение токена авторизации',
     responses={
-        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+        status.HTTP_422_UNPROCESSABLE_CONTENT: {
             'description': 'Неверный логин или пароль',
         },
     },
