@@ -3,17 +3,12 @@
 import uuid
 from typing import Any
 
-from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from repositories.cafe import cafe_crud
 from schemas.cafe import CafeUpdate
-from shared.core.errors import ConflictError, NotFoundError, ValidationError
+from shared.core.errors import NotFoundError, ValidationError
 from shared.models.cafe import Cafe
-from validators import (
-    validate_cafe_description,
-    validate_cafe_fields,
-)
 
 from .access import ensure_admin, ensure_cafe_access
 from .cafe_manager import (
@@ -26,49 +21,35 @@ CAFE_EDITABLE_FIELDS = frozenset(
 )
 
 
-class _CafeCreate(BaseModel):
-    """Внутренняя схема создания кафе."""
+async def get_cafe(
+    session: AsyncSession,
+    cafe_id: int,
+    include_inactive: bool = False,
+) -> Cafe:
+    """Возвращает кафе по ID.
 
-    name: str
-    address: str
-    phone: str
-    description: str | None = None
-    photo_id: uuid.UUID | None = None
-
-
-async def get_cafe(session: AsyncSession, cafe_id: int) -> Cafe:
-    """Возвращает активное кафе по ID."""
+    include_inactive=True — для персонала: мягко удалённые кафе видны.
+    """
     cafe = await cafe_crud.get(session=session, obj_id=cafe_id)
-    if cafe is None or not cafe.is_active:
+    if cafe is None:
+        raise NotFoundError(f'Кафе {cafe_id} не найдено.')
+    if not cafe.is_active and not include_inactive:
         raise NotFoundError(f'Кафе {cafe_id} не найдено.')
     return cafe
 
 
-async def get_cafes(session: AsyncSession) -> list[Cafe]:
-    """Возвращает список активных кафе."""
-    cafes = await cafe_crud.get_multi(session=session)
-    return sorted(
-        (cafe for cafe in cafes if cafe.is_active),
-        key=lambda cafe: cafe.id,
-    )
-
-
-async def _ensure_photo_free(
+async def get_cafes(
     session: AsyncSession,
-    photo_id: uuid.UUID,
-    exclude_cafe_id: int | None = None,
-) -> None:
-    """Проверяет, что фото не привязано к другому кафе."""
-    cafe = await cafe_crud.get_by_attribute(
-        session=session,
-        attribute='photo_id',
-        value=photo_id,
-    )
-    if cafe is None or not cafe.is_active:
-        return
-    if exclude_cafe_id is not None and cafe.id == exclude_cafe_id:
-        return
-    raise ConflictError('Это фото уже используется другим кафе.')
+    include_inactive: bool = False,
+) -> list[Cafe]:
+    """Возвращает список кафе.
+
+    include_inactive=True — для персонала, видны мягко удалённые кафе.
+    """
+    cafes = await cafe_crud.get_multi(session=session)
+    if not include_inactive:
+        cafes = [cafe for cafe in cafes if cafe.is_active]
+    return sorted(cafes, key=lambda cafe: cafe.id)
 
 
 async def create_cafe(
@@ -77,26 +58,25 @@ async def create_cafe(
     name: str,
     address: str,
     phone: str,
-    description: str | None = None,
-    photo_id: uuid.UUID | None = None,
+    description: str | None,
+    photo_id: uuid.UUID,
     managers_id: list[int] | None = None,
 ) -> Cafe:
-    """Создаёт кафе и привязывает менеджеров."""
-    ensure_admin(actor_role)
-    validate_cafe_fields(name, address, phone)
-    validate_cafe_description(description)
-    if photo_id is not None:
-        await _ensure_photo_free(session, photo_id)
+    """Создаёт кафе и привязывает менеджеров.
 
-    cafe = await cafe_crud.create(
+    Длины и формат полей проверяет схема CafeCreate.
+    """
+    ensure_admin(actor_role)
+
+    cafe = await cafe_crud.create_from_dict(
         session=session,
-        obj_in=_CafeCreate(
-            name=name,
-            address=address,
-            phone=phone,
-            description=description,
-            photo_id=photo_id,
-        ),
+        data={
+            'name': name,
+            'address': address,
+            'phone': phone,
+            'description': description,
+            'photo_id': photo_id,
+        },
     )
 
     await sync_cafe_managers(session, cafe.id, managers_id or None)
@@ -111,8 +91,12 @@ async def update_cafe(
     cafe_id: int,
     **fields: Any,
 ) -> Cafe:
-    """Обновляет поля кафе. Менеджеров меняет только админ."""
-    cafe = await get_cafe(session, cafe_id)
+    """Обновляет поля кафе. Менеджеров меняет только админ.
+
+    Править мягко удалённое кафе персоналу можно — поэтому
+    include_inactive=True.
+    """
+    cafe = await get_cafe(session, cafe_id, include_inactive=True)
 
     managers_requested = 'managers_id' in fields
     managers_id = fields.pop('managers_id', None)
@@ -129,22 +113,6 @@ async def update_cafe(
         )
 
     changes = dict(fields)
-
-    if {'name', 'address', 'phone'} & changes.keys():
-        validate_cafe_fields(
-            changes.get('name', cafe.name),
-            changes.get('address', cafe.address),
-            changes.get('phone', cafe.phone),
-        )
-    if 'description' in changes:
-        validate_cafe_description(changes['description'])
-
-    if 'photo_id' in changes and changes['photo_id'] is not None:
-        await _ensure_photo_free(
-            session,
-            changes['photo_id'],
-            exclude_cafe_id=cafe_id,
-        )
 
     if managers_requested:
         await sync_cafe_managers(session, cafe_id, managers_id)
@@ -166,12 +134,12 @@ async def delete_cafe(
 ) -> None:
     """Мягко удаляет кафе и отвязывает менеджеров."""
     ensure_admin(actor_role)
-    cafe = await get_cafe(session, cafe_id)
+    cafe = await get_cafe(session, cafe_id, include_inactive=True)
 
     await delete_cafe_managers(session, actor_role, cafe_id)
 
     await cafe_crud.update(
         session=session,
         db_obj=cafe,
-        obj_in=CafeUpdate(is_active=False, photo_id=None),
+        obj_in=CafeUpdate(is_active=False),
     )

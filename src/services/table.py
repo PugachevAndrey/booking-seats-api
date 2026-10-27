@@ -2,29 +2,17 @@
 
 from typing import Any
 
-from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from repositories.table import table_crud
 from schemas.table import TableUpdate
 from shared.core.errors import NotFoundError, ValidationError
 from shared.models.table import Table
-from validators import (
-    validate_table_description,
-    validate_table_seat_number,
-)
 
 from .access import ensure_cafe_access
 
 TABLE_EDITABLE_FIELDS = frozenset({'description', 'seat_number'})
-
-
-class _TableCreate(BaseModel):
-    """Внутренняя схема создания стола."""
-
-    cafe_id: int
-    description: str | None = None
-    seat_number: int
+SEAT_NUMBER_MIN = 1
 
 
 async def get_table(session: AsyncSession, table_id: int) -> Table:
@@ -51,6 +39,17 @@ async def get_tables(
     )
 
 
+def _validate_seat_number(seat_number: int) -> None:
+    """Проверяет количество мест.
+
+    Схема оставляет значение без ограничения, поэтому проверяем здесь.
+    """
+    if seat_number < SEAT_NUMBER_MIN:
+        raise ValidationError(
+            'Количество мест должно быть положительным числом.',
+        )
+
+
 async def create_table(
     session: AsyncSession,
     actor_role: str,
@@ -59,18 +58,21 @@ async def create_table(
     description: str | None,
     seat_number: int,
 ) -> Table:
-    """Создаёт новый стол."""
+    """Создаёт новый стол.
+
+    Длину описания проверяет схема TableCreate.
+    """
     ensure_cafe_access(actor_role, actor_cafe_id, cafe_id)
-    validate_table_seat_number(seat_number)
-    validate_table_description(description)
+    _validate_seat_number(seat_number)
 
-    payload: dict[str, Any] = {'seat_number': seat_number}
+    data: dict[str, Any] = {
+        'cafe_id': cafe_id,
+        'seat_number': seat_number,
+    }
     if description is not None:
-        payload['description'] = description
+        data['description'] = description
 
-    obj_in = _TableCreate(cafe_id=cafe_id, **payload)
-
-    return await table_crud.create(session=session, obj_in=obj_in)
+    return await table_crud.create_from_dict(session=session, data=data)
 
 
 async def update_table(
@@ -92,13 +94,8 @@ async def update_table(
 
     changes = dict(fields)
 
-    if 'description' in changes:
-        if changes['description'] is None:
-            raise ValidationError('Описание нельзя очистить через None.')
-        validate_table_description(changes['description'])
-
     if 'seat_number' in changes:
-        validate_table_seat_number(changes['seat_number'])
+        _validate_seat_number(changes['seat_number'])
 
     return await table_crud.update(
         session=session,

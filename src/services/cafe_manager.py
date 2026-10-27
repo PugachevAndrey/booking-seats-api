@@ -1,13 +1,11 @@
 """Бизнес-логика управления менеджерами кафе."""
 
-from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from repositories.cafe import cafe_crud
 from repositories.cafe_manager import cafe_manager_crud
 from shared.core.errors import ConflictError, NotFoundError
 from shared.models.cafe_manager import CafeManager
-from shared.models.user import User
 
 from .access import ensure_admin
 
@@ -29,13 +27,10 @@ async def _ensure_users_exist(
     """Проверяет, что все активные пользователи существуют."""
     if not manager_ids:
         return
-    result = await session.execute(
-        select(User.id).where(
-            User.id.in_(manager_ids),
-            User.is_active.is_(True),
-        ),
+    found = await cafe_manager_crud.get_existing_user_ids(
+        session=session,
+        user_ids=manager_ids,
     )
-    found: set[int] = set(result.scalars().all())
     missing = set(manager_ids) - found
     if missing:
         raise ConflictError(
@@ -51,74 +46,82 @@ async def _ensure_managers_free(
     """Проверяет, что менеджеры не привязаны к другому кафе."""
     if not manager_ids:
         return
-    result = await session.execute(
-        select(CafeManager.user_id).where(
-            CafeManager.user_id.in_(manager_ids),
-            CafeManager.cafe_id != cafe_id,
-        ),
+    busy = await cafe_manager_crud.get_busy_user_ids(
+        session=session,
+        user_ids=manager_ids,
+        exclude_cafe_id=cafe_id,
     )
-    busy: list[int] = list(result.scalars().all())
     if busy:
         raise ConflictError(
             f'Менеджеры уже привязаны к другому кафе: {sorted(busy)}.',
         )
 
 
-async def _drop_cafe_links(
+async def _deactivate_link(
     session: AsyncSession,
-    cafe_id: int,
+    link: CafeManager,
 ) -> None:
-    """Удаляет все связи кафе с менеджерами."""
-    await session.execute(
-        delete(CafeManager).where(CafeManager.cafe_id == cafe_id),
-    )
+    """Помечает связь менеджера с кафе неактивной."""
+    link.is_active = False
     await session.flush()
 
 
-async def _get_link(
+async def _attach_manager(
     session: AsyncSession,
     cafe_id: int,
     user_id: int,
-) -> CafeManager | None:
-    """Возвращает связь менеджера с кафе, если она есть."""
-    result = await session.execute(
-        select(CafeManager).where(
-            CafeManager.user_id == user_id,
-            CafeManager.cafe_id == cafe_id,
-        ),
+) -> CafeManager:
+    """Привязывает менеджера к кафе, переиспользуя неактивную связь.
+
+    У CafeManager.user_id стоит unique=True, поэтому новую строку
+    создаём только если ни одной связи у пользователя ещё нет.
+    Существующую неактивную связь реактивируем и переносим в кафе.
+    """
+    link = await cafe_manager_crud.get_link_by_user(
+        session=session,
+        user_id=user_id,
     )
-    return result.scalar_one_or_none()
+    if link is not None:
+        link.cafe_id = cafe_id
+        link.is_active = True
+        await session.flush()
+        return link
+
+    return await cafe_manager_crud.create_from_dict(
+        session=session,
+        data={'cafe_id': cafe_id, 'user_id': user_id},
+    )
 
 
 async def get_cafe_managers(
     session: AsyncSession,
     cafe_id: int,
 ) -> list[CafeManager]:
-    """Возвращает связи кафе с менеджерами."""
+    """Возвращает активные связи кафе с менеджерами."""
     await _ensure_cafe_exists(session, cafe_id)
-    result = await session.execute(
-        select(CafeManager).where(CafeManager.cafe_id == cafe_id).order_by(CafeManager.user_id),
+    return await cafe_manager_crud.get_managers_by_cafe(
+        session=session,
+        cafe_id=cafe_id,
     )
-    return list(result.scalars().all())
 
 
 async def get_cafe_manager_ids(
     session: AsyncSession,
     cafe_id: int,
 ) -> list[int]:
-    """Возвращает идентификаторы менеджеров кафе."""
+    """Возвращает идентификаторы активных менеджеров кафе."""
     await _ensure_cafe_exists(session, cafe_id)
-    result = await session.execute(
-        select(CafeManager.user_id).where(CafeManager.cafe_id == cafe_id).order_by(CafeManager.user_id),
+    return await cafe_manager_crud.get_manager_ids_by_cafe(
+        session=session,
+        cafe_id=cafe_id,
     )
-    return list(result.scalars().all())
 
 
 async def get_manager_cafe_id(
     session: AsyncSession,
     user_id: int,
 ) -> int | None:
-    """Возвращает кафе, к которому привязан менеджер."""
+    """Возвращает кафе активной привязки менеджера."""
     return await cafe_manager_crud.get_cafe_id_by_user(
         session=session,
         user_id=user_id,
@@ -130,20 +133,38 @@ async def sync_cafe_managers(
     cafe_id: int,
     manager_ids: list[int] | None,
 ) -> None:
-    """Синхронизирует набор менеджеров кафе."""
+    """Приводит состав менеджеров кафе к заданному без удаления записей.
+
+    Лишние связи деактивируются, недостающие создаются или
+    реактивируются. Строки из БД не удаляются.
+    """
     if manager_ids is None:
         return
 
-    unique_ids = list(dict.fromkeys(manager_ids))
+    target = set(dict.fromkeys(manager_ids))
 
     await _ensure_cafe_exists(session, cafe_id)
-    await _ensure_users_exist(session, unique_ids)
-    await _ensure_managers_free(session, unique_ids, cafe_id)
+    await _ensure_users_exist(session, list(target))
+    await _ensure_managers_free(session, list(target), cafe_id)
 
-    await _drop_cafe_links(session, cafe_id)
+    current = set(
+        await cafe_manager_crud.get_manager_ids_by_cafe(
+            session=session,
+            cafe_id=cafe_id,
+        ),
+    )
 
-    session.add_all(CafeManager(user_id=user_id, cafe_id=cafe_id) for user_id in unique_ids)
-    await session.flush()
+    for user_id in current - target:
+        link = await cafe_manager_crud.get_link(
+            session=session,
+            cafe_id=cafe_id,
+            user_id=user_id,
+        )
+        if link is not None:
+            await _deactivate_link(session, link)
+
+    for user_id in target - current:
+        await _attach_manager(session, cafe_id, user_id)
 
 
 async def add_cafe_manager(
@@ -157,18 +178,18 @@ async def add_cafe_manager(
     await _ensure_cafe_exists(session, cafe_id)
     await _ensure_users_exist(session, [user_id])
 
-    existing = await _get_link(session, cafe_id, user_id)
+    existing = await cafe_manager_crud.get_link(
+        session=session,
+        cafe_id=cafe_id,
+        user_id=user_id,
+    )
     if existing is not None:
         raise ConflictError(
             f'Менеджер {user_id} уже привязан к кафе {cafe_id}.',
         )
 
     await _ensure_managers_free(session, [user_id], cafe_id)
-
-    link = CafeManager(user_id=user_id, cafe_id=cafe_id)
-    session.add(link)
-    await session.flush()
-    return link
+    return await _attach_manager(session, cafe_id, user_id)
 
 
 async def remove_cafe_manager(
@@ -177,14 +198,18 @@ async def remove_cafe_manager(
     cafe_id: int,
     user_id: int,
 ) -> None:
-    """Отвязывает менеджера от кафе."""
+    """Отвязывает менеджера от кафе без удаления строки."""
     ensure_admin(actor_role)
-    link = await _get_link(session, cafe_id, user_id)
+    link = await cafe_manager_crud.get_link(
+        session=session,
+        cafe_id=cafe_id,
+        user_id=user_id,
+    )
     if link is None:
         raise NotFoundError(
             f'Менеджер {user_id} не привязан к кафе {cafe_id}.',
         )
-    await cafe_manager_crud.remove(session=session, db_obj=link)
+    await _deactivate_link(session, link)
 
 
 async def delete_cafe_managers(
@@ -192,7 +217,13 @@ async def delete_cafe_managers(
     actor_role: str,
     cafe_id: int,
 ) -> None:
-    """Удаляет все связи кафе с менеджерами."""
+    """Отвязывает всех менеджеров от кафе без удаления строк."""
     ensure_admin(actor_role)
     await _ensure_cafe_exists(session, cafe_id)
-    await _drop_cafe_links(session, cafe_id)
+
+    links = await cafe_manager_crud.get_managers_by_cafe(
+        session=session,
+        cafe_id=cafe_id,
+    )
+    for link in links:
+        await _deactivate_link(session, link)

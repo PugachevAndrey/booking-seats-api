@@ -2,48 +2,41 @@
 
 from typing import Any
 
-from pydantic import BaseModel
-from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from repositories.user import user_crud
 from schemas.user import UserUpdate
 from shared.core.errors import ConflictError, NotFoundError, ValidationError
-from shared.models.cafe_manager import CafeManager
 from shared.models.user import User
-from validators import (
-    ensure_text_not_blank,
-    validate_role,
-    validate_role_change,
-    validate_user_fields,
-)
+from validators import ensure_text_not_blank
 
 from .access import ROLES, ROLE_ADMIN, ROLE_USER, ensure_admin, ensure_staff
 
 USER_EDITABLE_FIELDS = frozenset(
     {'username', 'email', 'phone', 'tg_id', 'password', 'role'},
 )
-UNIQUE_FIELDS = frozenset({'email', 'phone', 'tg_id'})
 PROFILE_FIELDS = frozenset({'username', 'email', 'phone', 'tg_id'})
 STAFF_EDITABLE_FIELDS = USER_EDITABLE_FIELDS | {'is_active'}
 
 UNIQUE_CONFLICT_MESSAGE = 'Пользователь с такими данными уже существует.'
+UNIQUE_VIOLATION_CODE = '23505'  # PostgreSQL: unique_violation
 
 
-class _UserCreate(BaseModel):
-    """Внутренняя схема создания пользователя."""
+def _is_unique_violation(exc: IntegrityError) -> bool:
+    """Проверяет, что IntegrityError вызвана нарушением UNIQUE."""
+    return getattr(getattr(exc, 'orig', None), 'pgcode', None) == (
+        UNIQUE_VIOLATION_CODE
+    )
 
-    username: str
-    email: str | None = None
-    phone: str | None = None
-    tg_id: str | None = None
-    password_hash: str
-    role: str
+
+def _conflict_from_integrity() -> ConflictError:
+    """Превращает нарушение UNIQUE в доменный конфликт."""
+    return ConflictError(UNIQUE_CONFLICT_MESSAGE)
 
 
 async def get_user(session: AsyncSession, user_id: int) -> User:
-    """Возвращает активного пользователя по ID."""
+    """Возвращает пользователя по ID."""
     user = await user_crud.get(session=session, obj_id=user_id)
     if user is None:
         raise NotFoundError(f'Пользователь {user_id} не найден.')
@@ -83,42 +76,25 @@ async def get_users(
     if actor_cafe_id is None:
         return []
 
-    result = await session.execute(
-        select(User)
-        .join(CafeManager, CafeManager.user_id == User.id)
-        .where(
-            User.is_active.is_(True),
-            CafeManager.cafe_id == actor_cafe_id,
-        )
-        .order_by(User.id),
+    users = await user_crud.get_by_cafe_id(
+        session=session,
+        cafe_id=actor_cafe_id,
     )
-    return list(result.scalars().all())
+    return sorted(users, key=lambda user: user.id)
 
 
-async def _ensure_unique(
-    session: AsyncSession,
-    email: str | None,
-    phone: str | None,
-    tg_id: str | None,
-    exclude_user_id: int | None = None,
+def _validate_role_change(
+    actor_id: int,
+    user_id: int,
+    actor_role: str,
+    new_role: str,
 ) -> None:
-    """Проверяет уникальность заполненных email, phone и tg_id."""
-    conditions = []
-    if email is not None:
-        conditions.append(User.email == email)
-    if phone is not None:
-        conditions.append(User.phone == phone)
-    if tg_id is not None:
-        conditions.append(User.tg_id == tg_id)
-    if not conditions:
-        return
-
-    query = select(User.id).where(or_(*conditions))
-    if exclude_user_id is not None:
-        query = query.where(User.id != exclude_user_id)
-    result = await session.execute(query)
-    if result.first() is not None:
-        raise ConflictError(UNIQUE_CONFLICT_MESSAGE)
+    """Проверяет права на смену роли и допустимость роли."""
+    if actor_id == user_id:
+        raise ValidationError('Нельзя менять собственную роль.')
+    ensure_admin(actor_role)
+    if new_role not in ROLES:
+        raise ValidationError(f'Недопустимая роль: {new_role}.')
 
 
 async def create_user(
@@ -130,45 +106,45 @@ async def create_user(
     password: str,
     role: str = ROLE_USER,
 ) -> User:
-    """Создаёт нового пользователя."""
-    validate_user_fields(username, email, phone, tg_id)
+    """Создаёт нового пользователя.
+
+    Длины полей и формат email/phone проверяет схема UserCreate.
+    Уникальность email/phone/tg_id обеспечивает БД: нарушение
+    превращается в ConflictError (409).
+    """
     if email is None and phone is None:
         raise ValidationError('Нужен email или телефон.')
-    validate_role(role, ROLES)
+    if role not in ROLES:
+        raise ValidationError(f'Недопустимая роль: {role}.')
     ensure_text_not_blank(password, 'Пароль')
 
-    await _ensure_unique(session, email, phone, tg_id)
-
     try:
-        return await user_crud.create(
+        return await user_crud.create_from_dict(
             session=session,
-            obj_in=_UserCreate(
-                username=username,
-                email=email,
-                phone=phone,
-                tg_id=tg_id,
-                password_hash=User.hash_password(password),
-                role=role,
-            ),
+            data={
+                'username': username,
+                'email': email,
+                'phone': phone,
+                'tg_id': tg_id,
+                'password_hash': User.hash_password(password),
+                'role': role,
+            },
         )
     except IntegrityError as exc:
         await session.rollback()
-        raise ConflictError(UNIQUE_CONFLICT_MESSAGE) from exc
+        if _is_unique_violation(exc):
+            raise _conflict_from_integrity() from exc
+        raise
 
 
-async def update_user(  # noqa: C901
-    session: AsyncSession,
-    actor_id: int,
+def _validate_change_permission(
+    is_self: bool,
+    is_admin: bool,
     actor_role: str,
-    user_id: int,
-    **fields: Any,
-) -> User:
-    """Обновляет поля пользователя с проверкой прав и уникальности."""
-    is_self = actor_id == user_id
-    is_admin = actor_role == ROLE_ADMIN
-
-    user = await get_user(session, user_id)
-
+    fields: dict[str, Any],
+    user: User,
+) -> None:
+    """Проверяет права на изменение и корректность набора полей."""
     if not is_self and not is_admin:
         ensure_admin(actor_role)
 
@@ -182,37 +158,40 @@ async def update_user(  # noqa: C901
     if fields.get('is_active') is False and is_self:
         raise ValidationError('Нельзя деактивировать себя.')
 
-    if 'role' in fields:
-        validate_role_change(
-            actor_id,
-            user_id,
-            actor_role,
-            ROLE_ADMIN,
-        )
-        validate_role(fields['role'], ROLES)
-
     if PROFILE_FIELDS & fields.keys():
-        merged = {
-            'username': fields.get('username', user.username),
-            'email': fields.get('email', user.email),
-            'phone': fields.get('phone', user.phone),
-            'tg_id': fields.get('tg_id', user.tg_id),
-        }
-        validate_user_fields(**merged)
-        if merged['email'] is None and merged['phone'] is None:
+        merged_email = fields.get('email', user.email)
+        merged_phone = fields.get('phone', user.phone)
+        if merged_email is None and merged_phone is None:
             raise ValidationError('Нужен email или телефон.')
 
-    if UNIQUE_FIELDS & fields.keys():
-        await _ensure_unique(
-            session,
-            fields.get('email', user.email),
-            fields.get('phone', user.phone),
-            fields.get('tg_id', user.tg_id),
-            exclude_user_id=user_id,
-        )
+
+async def update_user(
+    session: AsyncSession,
+    actor_id: int,
+    actor_role: str,
+    user_id: int,
+    **fields: Any,
+) -> User:
+    """Обновляет поля пользователя с проверкой прав.
+
+    Уникальность email/phone/tg_id обеспечивает БД.
+    """
+    is_self = actor_id == user_id
+    is_admin = actor_role == ROLE_ADMIN
+
+    user = await get_user(session, user_id)
+
+    _validate_change_permission(
+        is_self, is_admin, actor_role, fields, user,
+    )
+
+    if 'role' in fields:
+        _validate_role_change(actor_id, user_id, actor_role, fields['role'])
 
     if 'password' in fields:
-        user.set_password(fields.pop('password'))
+        password = fields.pop('password')
+        ensure_text_not_blank(password, 'Пароль')
+        user.set_password(password)
 
     if not fields:
         await session.flush()
@@ -226,7 +205,9 @@ async def update_user(  # noqa: C901
         )
     except IntegrityError as exc:
         await session.rollback()
-        raise ConflictError(UNIQUE_CONFLICT_MESSAGE) from exc
+        if _is_unique_violation(exc):
+            raise _conflict_from_integrity() from exc
+        raise
 
 
 async def delete_user(
