@@ -116,6 +116,7 @@ async def update_cafe(
 
     if managers_requested:
         await sync_cafe_managers(session, cafe_id, managers_id)
+        await session.refresh(cafe, attribute_names=['managers'])
 
     if changes:
         cafe = await cafe_crud.update(

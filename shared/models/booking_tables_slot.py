@@ -1,9 +1,11 @@
 """Модель бронирования столов с указанием времени."""
 
 from sqlalchemy import ForeignKey, Index, Integer
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from shared.core.base_model import Base
+from shared.models.slot import Slot
+from shared.models.table import Table
 
 
 class BookingTablesSlot(Base):
@@ -21,11 +23,13 @@ class BookingTablesSlot(Base):
         ForeignKey('tables.id'),
         comment='ID стола',
     )
+    table: Mapped[Table] = relationship(Table, lazy='selectin')
     slot_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey('slots.id'),
         comment='ID временного слота',
     )
+    slot: Mapped[Slot] = relationship(Slot, lazy='selectin')
 
     __table_args__ = (
         Index(

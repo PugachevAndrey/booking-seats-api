@@ -64,11 +64,7 @@ async def get_bookings(
     elif actor_role == ROLE_ADMIN:
         bookings = await booking_crud.get_multi(session=session)
         if booking_date is not None:
-            bookings = [
-                item
-                for item in bookings
-                if item.booking_date == booking_date
-            ]
+            bookings = [item for item in bookings if item.booking_date == booking_date]
     else:
         if actor_cafe_id is None:
             return []
@@ -224,10 +220,7 @@ def _validate_status_change(
         raise PermissionDeniedError(
             'Менять статус бронирования может только персонал.',
         )
-    if (
-        _as_status(changes['status']) is BookingStatus.COMPLETED
-        and booking.booking_date > date.today()
-    ):
+    if _as_status(changes['status']) is BookingStatus.COMPLETED and booking.booking_date > date.today():
         raise ValidationError('Нельзя завершить бронь на будущую дату.')
 
 
@@ -288,11 +281,7 @@ async def create_booking(
     if booking_date == now.date():
         for _, slot_id in pairs:
             slot = await slot_crud.get(session=session, obj_id=slot_id)
-            if (
-                slot is not None
-                and slot.start_time is not None
-                and slot.start_time <= now.time()
-            ):
+            if slot is not None and slot.start_time is not None and slot.start_time <= now.time():
                 raise ValidationError(
                     'Нельзя бронировать на прошедшее время.',
                 )
@@ -381,6 +370,7 @@ async def update_booking(
             booking_id=booking_id,
             pairs=pairs,
         )
+        await session.refresh(booking, attribute_names=['tables_slots'])
 
     return booking
 
