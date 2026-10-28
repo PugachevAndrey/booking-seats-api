@@ -3,9 +3,10 @@
 import uuid
 
 from sqlalchemy import UUID, ForeignKey, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from shared.core.base_model import Base
+from shared.models.user import User
 
 
 class Cafe(Base):
@@ -32,4 +33,9 @@ class Cafe(Base):
         ForeignKey('media.id', ondelete='SET NULL'),
         unique=True,
         comment='ID фотографии',
+    )
+    managers: Mapped[list[User]] = relationship(
+        'User',
+        secondary='cafe_managers',
+        lazy='selectin',
     )

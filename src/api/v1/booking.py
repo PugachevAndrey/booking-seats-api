@@ -5,32 +5,22 @@ from typing import Annotated
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, status
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.v1.deps import get_current_user, get_db
 from schemas.booking import BookingCreate, BookingInfo, BookingUpdate
-from schemas.booking_tables_slot import BookingTableSlotShortInfo
-from schemas.cafe import CafeShortInfo
-from schemas.slot import TimeSlotShortInfo
-from schemas.table import TableShortInfo
-from schemas.user import UserShortInfo
 from services.booking import (
     create_booking,
     get_booking,
     get_bookings,
     update_booking,
 )
-from services.cafe import get_cafe
 from services.cafe_manager import get_manager_cafe_id
 from services.slot import get_slot
-from services.table import get_table
-from services.user import get_user
 from shared.celery_client import send_notification
 from shared.core.enums import BookingStatus, UserRole
 from shared.core.errors import PermissionDeniedError, ValidationError
 from shared.models.booking import Booking
-from shared.models.booking_tables_slot import BookingTablesSlot
 from shared.models.user import User
 
 router = APIRouter(prefix='/booking', tags=['Бронирования'])
@@ -42,44 +32,9 @@ def _reminder_eta(booking_date: date, slot_start_time: time) -> datetime:
     return naive.replace(tzinfo=ZoneInfo('UTC')) - timedelta(hours=2)
 
 
-async def _booking_to_info(session: AsyncSession, booking: Booking) -> BookingInfo:
-    """Собирает BookingInfo с вложенными user, cafe, tables_slots."""
-    user = await get_user(session, booking.user_id)
-    cafe = await get_cafe(session, booking.cafe_id)
-
-    links_result = await session.execute(
-        select(BookingTablesSlot)
-        .where(
-            BookingTablesSlot.booking_id == booking.id,
-        )
-        .order_by(BookingTablesSlot.id),
-    )
-    links = list(links_result.scalars().all())
-
-    tables_slots: list[BookingTableSlotShortInfo] = []
-    for link in links:
-        table = await get_table(session, link.table_id)
-        slot = await get_slot(session, link.slot_id)
-        tables_slots.append(
-            BookingTableSlotShortInfo(
-                table=TableShortInfo.model_validate(table, from_attributes=True),
-                slot=TimeSlotShortInfo.model_validate(slot, from_attributes=True),
-            ),
-        )
-
-    return BookingInfo(
-        id=booking.id,
-        user=UserShortInfo.model_validate(user, from_attributes=True),
-        cafe=CafeShortInfo.model_validate(cafe, from_attributes=True),
-        tables_slots=tables_slots,
-        guest_number=booking.guest_number,
-        note=booking.note,
-        status=booking.status,
-        booking_date=booking.booking_date,
-        is_active=booking.is_active,
-        created_at=booking.created_at,
-        updated_at=booking.updated_at,
-    )
+def _booking_to_info(booking: Booking) -> BookingInfo:
+    """Собирает BookingInfo; user, cafe, tables_slots через relationship."""
+    return BookingInfo.model_validate(booking, from_attributes=True)
 
 
 def _ensure_user_can_see(
@@ -109,7 +64,7 @@ async def list_bookings(
         actor_role=current_user.role,
         actor_cafe_id=actor_cafe_id,
     )
-    return [await _booking_to_info(session, b) for b in bookings]
+    return [_booking_to_info(b) for b in bookings]
 
 
 @router.post(
@@ -151,7 +106,7 @@ async def create_booking_endpoint(
         eta=_reminder_eta(booking.booking_date, slot.start_time),
     )
 
-    return await _booking_to_info(session, booking)
+    return _booking_to_info(booking)
 
 
 @router.get(
@@ -172,7 +127,7 @@ async def get_booking_by_id(
         manager_cafe_id = await get_manager_cafe_id(session, current_user.id)
     _ensure_user_can_see(booking, current_user, manager_cafe_id)
 
-    return await _booking_to_info(session, booking)
+    return _booking_to_info(booking)
 
 
 @router.patch(
@@ -211,4 +166,4 @@ async def update_booking_by_id(
     )
     send_notification('tasks.notify_booking_updated', updated.id)
 
-    return await _booking_to_info(session, updated)
+    return _booking_to_info(updated)

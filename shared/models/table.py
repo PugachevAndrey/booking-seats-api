@@ -1,9 +1,10 @@
 """Модель стола."""
 
 from sqlalchemy import CheckConstraint, ForeignKey, Index, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from shared.core.base_model import Base
+from shared.models.cafe import Cafe
 
 
 class Table(Base):
@@ -14,6 +15,7 @@ class Table(Base):
         ForeignKey('cafes.id'),
         comment='ID кафе',
     )
+    cafe: Mapped[Cafe] = relationship(Cafe, lazy='selectin')
     description: Mapped[str | None] = mapped_column(
         String(255),
         comment='Описание стола',

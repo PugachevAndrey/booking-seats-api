@@ -6,9 +6,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.v1.deps import get_current_staff, get_current_user, get_db
-from schemas.cafe import CafeShortInfo
 from schemas.table import TableCreate, TableInfo, TableUpdate
-from services.cafe import get_cafe
 from services.cafe_manager import get_manager_cafe_id
 from services.table import (
     create_table,
@@ -24,18 +22,9 @@ from shared.models.user import User
 router = APIRouter(prefix='/cafes/{cafe_id}/tables', tags=['Столы'])
 
 
-async def _table_to_info(session: AsyncSession, table: Table) -> TableInfo:
-    """Собирает TableInfo с вложенным кафе (без relationship в модели)."""
-    cafe = await get_cafe(session, table.cafe_id)
-    return TableInfo(
-        id=table.id,
-        cafe=CafeShortInfo.model_validate(cafe, from_attributes=True),
-        description=table.description,
-        seat_number=table.seat_number,
-        is_active=table.is_active,
-        created_at=table.created_at,
-        updated_at=table.updated_at,
-    )
+def _table_to_info(table: Table) -> TableInfo:
+    """Собирает TableInfo; вложенное кафе подгружается через relationship."""
+    return TableInfo.model_validate(table, from_attributes=True)
 
 
 @router.get('', response_model=list[TableInfo], summary='Список столов в кафе')
@@ -46,7 +35,7 @@ async def list_tables(
 ) -> list[TableInfo]:
     """Возвращает список столиков."""
     tables = await get_tables(session, cafe_id)
-    return [await _table_to_info(session, t) for t in tables]
+    return [_table_to_info(t) for t in tables]
 
 
 @router.post(
@@ -75,7 +64,7 @@ async def create_table_endpoint(
         description=payload.get('description'),
         seat_number=payload['seat_number'],
     )
-    return await _table_to_info(session, table)
+    return _table_to_info(table)
 
 
 @router.get(
@@ -93,7 +82,7 @@ async def get_table_by_id(
     table = await get_table(session, table_id)
     if table.cafe_id != cafe_id:
         raise NotFoundError(f'Стол {table_id} не найден в кафе {cafe_id}.')
-    return await _table_to_info(session, table)
+    return _table_to_info(table)
 
 
 @router.patch(
@@ -125,4 +114,4 @@ async def update_table_by_id(
         table_id=table_id,
         **fields,
     )
-    return await _table_to_info(session, updated)
+    return _table_to_info(updated)
