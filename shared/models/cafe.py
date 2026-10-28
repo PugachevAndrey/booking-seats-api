@@ -31,7 +31,6 @@ class Cafe(Base):
     photo_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID,
         ForeignKey('media.id', ondelete='SET NULL'),
-        unique=True,
         comment='ID фотографии',
     )
     managers: Mapped[list[User]] = relationship(
