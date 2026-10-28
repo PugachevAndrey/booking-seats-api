@@ -6,9 +6,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.v1.deps import get_current_staff, get_current_user, get_db
-from schemas.cafe import CafeShortInfo
 from schemas.slot import TimeSlotCreate, TimeSlotInfo, TimeSlotUpdate
-from services.cafe import get_cafe
 from services.cafe_manager import get_manager_cafe_id
 from services.slot import (
     create_slot,
@@ -27,19 +25,9 @@ router = APIRouter(
 )
 
 
-async def _slot_to_info(session: AsyncSession, slot: Slot) -> TimeSlotInfo:
-    """Собирает TimeSlotInfo с вложенным кафе (без relationship в модели)."""
-    cafe = await get_cafe(session, slot.cafe_id)
-    return TimeSlotInfo(
-        id=slot.id,
-        cafe=CafeShortInfo.model_validate(cafe, from_attributes=True),
-        start_time=slot.start_time,
-        end_time=slot.end_time,
-        description=slot.description,
-        is_active=slot.is_active,
-        created_at=slot.created_at,
-        updated_at=slot.updated_at,
-    )
+def _slot_to_info(slot: Slot) -> TimeSlotInfo:
+    """Собирает TimeSlotInfo; вложенное кафе подгружается через relationship."""
+    return TimeSlotInfo.model_validate(slot, from_attributes=True)
 
 
 @router.get(
@@ -54,7 +42,7 @@ async def list_slots(
 ) -> list[TimeSlotInfo]:
     """Возвращает список слотов."""
     slots = await get_slots(session, cafe_id)
-    return [await _slot_to_info(session, s) for s in slots]
+    return [_slot_to_info(s) for s in slots]
 
 
 @router.post(
@@ -84,7 +72,7 @@ async def create_slot_endpoint(
         end_time=payload['end_time'],
         description=payload.get('description'),
     )
-    return await _slot_to_info(session, slot)
+    return _slot_to_info(slot)
 
 
 @router.get(
@@ -102,7 +90,7 @@ async def get_slot_by_id(
     slot = await get_slot(session, slot_id)
     if slot.cafe_id != cafe_id:
         raise NotFoundError(f'Слот {slot_id} не найден в кафе {cafe_id}.')
-    return await _slot_to_info(session, slot)
+    return _slot_to_info(slot)
 
 
 @router.patch(
@@ -134,4 +122,4 @@ async def update_slot_by_id(
         slot_id=slot_id,
         **fields,
     )
-    return await _slot_to_info(session, updated)
+    return _slot_to_info(updated)

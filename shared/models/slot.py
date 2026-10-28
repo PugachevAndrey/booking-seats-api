@@ -3,9 +3,10 @@
 from datetime import time
 
 from sqlalchemy import CheckConstraint, ForeignKey, Index, Integer, String, Time
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from shared.core.base_model import Base
+from shared.models.cafe import Cafe
 
 
 class Slot(Base):
@@ -16,6 +17,7 @@ class Slot(Base):
         ForeignKey('cafes.id'),
         comment='ID кафе',
     )
+    cafe: Mapped[Cafe] = relationship(Cafe, lazy='selectin')
     start_time: Mapped[time] = mapped_column(
         Time,
         comment='Время начала слота',

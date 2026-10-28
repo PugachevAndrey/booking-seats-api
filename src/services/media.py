@@ -2,27 +2,14 @@
 
 import uuid
 
-from pydantic import BaseModel
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from repositories.media import media_crud
-from shared.core.errors import (
-    ConflictError,
-    NotFoundError,
-    PermissionDeniedError,
-)
-from shared.models.cafe import Cafe
+from shared.core.errors import NotFoundError
 from shared.models.media import Media
 from validators import validate_media_file_name
 
-from .access import ensure_staff, is_admin
-
-
-class _MediaCreate(BaseModel):
-    """Внутренняя схема создания записи медиа."""
-
-    file_name: str
+from .access import ensure_staff
 
 
 async def get_media(
@@ -36,78 +23,20 @@ async def get_media(
     return media
 
 
-async def _get_owner_cafe_id(
-    session: AsyncSession,
-    media_id: uuid.UUID,
-) -> int | None:
-    """Возвращает ID кафе, использующего медиа (или None)."""
-    result = await session.execute(
-        select(Cafe.id)
-        .where(
-            Cafe.photo_id == media_id,
-            Cafe.is_active.is_(True),
-        )
-        .order_by(Cafe.id),
-    )
-    return result.scalars().first()
-
-
-async def _ensure_media_access(
-    session: AsyncSession,
-    actor_role: str,
-    actor_cafe_id: int | None,
-    media_id: uuid.UUID,
-) -> int | None:
-    """Проверяет права на медиафайл и возвращает ID кафе-владельца."""
-    owner_cafe_id = await _get_owner_cafe_id(session, media_id)
-
-    if not is_admin(actor_role):
-        if owner_cafe_id is None:
-            raise PermissionDeniedError(
-                'Нет прав на работу со свободным медиафайлом.',
-            )
-        if actor_cafe_id != owner_cafe_id:
-            raise PermissionDeniedError(
-                'Нет прав на работу с медиафайлом другого кафе.',
-            )
-
-    return owner_cafe_id
-
-
 async def create_media(
     session: AsyncSession,
     actor_role: str,
     file_name: str,
 ) -> Media:
-    """Создаёт запись метаданных медиафайла."""
+    """Создаёт запись метаданных медиафайла.
+
+    Содержимое, MIME и размер проверяются в роутере (api/v1/media.py)
+    до вызова сервиса.
+    """
     ensure_staff(actor_role)
     validate_media_file_name(file_name)
 
-    return await media_crud.create(
+    return await media_crud.create_from_dict(
         session=session,
-        obj_in=_MediaCreate(file_name=file_name),
+        data={'file_name': file_name},
     )
-
-
-async def delete_media(
-    session: AsyncSession,
-    actor_role: str,
-    actor_cafe_id: int | None,
-    media_id: uuid.UUID,
-) -> None:
-    """Удаляет медиафайл с проверкой прав и занятости."""
-    ensure_staff(actor_role)
-    media = await get_media(session, media_id)
-
-    owner_cafe_id = await _ensure_media_access(
-        session,
-        actor_role,
-        actor_cafe_id,
-        media_id,
-    )
-    if owner_cafe_id is not None:
-        raise ConflictError(
-            f'Медиафайл используется кафе {owner_cafe_id}. Сначала отвяжите его.',
-        )
-
-    await media_crud.remove(session=session, db_obj=media)

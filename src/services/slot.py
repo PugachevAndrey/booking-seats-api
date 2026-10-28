@@ -3,17 +3,13 @@
 from datetime import time
 from typing import Any
 
-from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from repositories.slot import slot_crud
 from schemas.slot import TimeSlotUpdate
 from shared.core.errors import NotFoundError, ValidationError
 from shared.models.slot import Slot
-from validators import (
-    validate_slot_description,
-    validate_slot_time_range,
-)
+from validators import validate_slot_time_range
 
 from .access import ensure_cafe_access
 
@@ -21,15 +17,6 @@ SLOT_EDITABLE_FIELDS = frozenset(
     {'start_time', 'end_time', 'description'},
 )
 SLOT_TIME_FIELDS = frozenset({'start_time', 'end_time'})
-
-
-class _SlotCreate(BaseModel):
-    """Внутренняя схема создания слота."""
-
-    cafe_id: int
-    start_time: time
-    end_time: time
-    description: str | None = None
 
 
 async def get_slot(session: AsyncSession, slot_id: int) -> Slot:
@@ -65,21 +52,22 @@ async def create_slot(
     end_time: time,
     description: str | None = None,
 ) -> Slot:
-    """Создаёт новый слот."""
+    """Создаёт новый слот.
+
+    Длину описания проверяет схема TimeSlotCreate.
+    """
     ensure_cafe_access(actor_role, actor_cafe_id, cafe_id)
     validate_slot_time_range(start_time, end_time)
-    validate_slot_description(description)
 
-    payload: dict[str, Any] = {
+    data: dict[str, Any] = {
+        'cafe_id': cafe_id,
         'start_time': start_time,
         'end_time': end_time,
     }
     if description is not None:
-        payload['description'] = description
+        data['description'] = description
 
-    obj_in = _SlotCreate(cafe_id=cafe_id, **payload)
-
-    return await slot_crud.create(session=session, obj_in=obj_in)
+    return await slot_crud.create_from_dict(session=session, data=data)
 
 
 async def update_slot(
@@ -100,11 +88,6 @@ async def update_slot(
         )
 
     changes = dict(fields)
-
-    if 'description' in changes:
-        if changes['description'] is None:
-            raise ValidationError('Описание нельзя очистить через None.')
-        validate_slot_description(changes['description'])
 
     if SLOT_TIME_FIELDS & changes.keys():
         validate_slot_time_range(
