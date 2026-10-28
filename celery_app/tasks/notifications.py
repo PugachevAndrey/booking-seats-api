@@ -2,14 +2,19 @@
 
 import asyncio
 import logging
+import smtplib
 from collections.abc import Coroutine
+from email.message import EmailMessage
 from typing import Any
 
 from sqlalchemy import select
 
 from celery_app.celery import celery_app
 from shared.core.db import get_session
+from shared.core.settings import settings
 from shared.models.booking import Booking
+from shared.models.cafe_manager import CafeManager
+from shared.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +30,22 @@ def send_sms(phone: str, text: str) -> str:
 @celery_app.task
 def send_email(email: str, subject: str, text: str) -> str:
     """Отправка email."""
-    logger.info('Email to %s: %s', email, subject)
-    # TODO: интеграция с SMTP
+    msg = EmailMessage()
+    msg['From'] = settings.smtp_from
+    msg['To'] = email
+    msg['Subject'] = subject
+    msg.set_content(text)
+
+    if settings.smtp_use_ssl:
+        server = smtplib.SMTP_SSL(settings.smtp_host, settings.smtp_port)
+    else:
+        server = smtplib.SMTP(settings.smtp_host, settings.smtp_port)
+        server.starttls()
+
+    server.login(settings.smtp_user, settings.smtp_password)
+    server.sendmail(settings.smtp_from, [email], msg.as_string())
+    server.quit()
+    logger.info('Email sent to %s', email)
     return f'Email sent to {email}'
 
 
@@ -63,7 +82,35 @@ def notify_booking_created(booking_id: int) -> str:
                 booking.cafe_id,
                 booking.booking_date,
             )
-            # TODO: отправить SMS/email/Telegram
+            user = await session.get(User, booking.user_id)
+            if user and user.email:
+                send_email.delay(
+                    email=user.email,
+                    subject='Бронь создана',
+                    text=(
+                        f'Здравствуйте! Ваша бронь в кафе '
+                        f'{booking.cafe_id} на {booking.booking_date} создана.'
+                    ),
+                )
+
+            managers_result = await session.execute(
+                select(User)
+                .join(CafeManager, CafeManager.user_id == User.id)
+                .where(
+                    CafeManager.cafe_id == booking.cafe_id,
+                    CafeManager.is_active.is_(True),
+                    User.is_active.is_(True),
+                ),
+            )
+            for manager in managers_result.scalars().all():
+                if manager.email:
+                    send_email.delay(
+                        email=manager.email,
+                        subject='Новая бронь в кафе',
+                        text=(
+                            f'Новая бронь #{booking.id} в кафе {booking.cafe_id} на {booking.booking_date}.'
+                        ),
+                    )
             return booking.id
 
     booking_id = _run(_notify())
@@ -88,7 +135,33 @@ def notify_booking_updated(booking_id: int) -> str:
                 booking.id,
                 booking.status,
             )
-            # TODO: отправить уведомление
+            user = await session.get(User, booking.user_id)
+            if user and user.email:
+                send_email.delay(
+                    email=user.email,
+                    subject='Бронь обновлена',
+                    text=(f'Ваша бронь #{booking.id} обновлена. Статус: {booking.status}.'),
+                )
+
+            managers_result = await session.execute(
+                select(User)
+                .join(CafeManager, CafeManager.user_id == User.id)
+                .where(
+                    CafeManager.cafe_id == booking.cafe_id,
+                    CafeManager.is_active.is_(True),
+                    User.is_active.is_(True),
+                ),
+            )
+            for manager in managers_result.scalars().all():
+                if manager.email:
+                    send_email.delay(
+                        email=manager.email,
+                        subject='Бронь обновлена',
+                        text=(
+                            f'Бронь #{booking.id} в кафе '
+                            f'{booking.cafe_id} обновлена (статус: {booking.status}).'
+                        ),
+                    )
             return booking.id
 
     booking_id = _run(_notify())
