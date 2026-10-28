@@ -93,30 +93,6 @@ async def _attach_manager(
     )
 
 
-async def get_cafe_managers(
-    session: AsyncSession,
-    cafe_id: int,
-) -> list[CafeManager]:
-    """Возвращает активные связи кафе с менеджерами."""
-    await _ensure_cafe_exists(session, cafe_id)
-    return await cafe_manager_crud.get_managers_by_cafe(
-        session=session,
-        cafe_id=cafe_id,
-    )
-
-
-async def get_cafe_manager_ids(
-    session: AsyncSession,
-    cafe_id: int,
-) -> list[int]:
-    """Возвращает идентификаторы активных менеджеров кафе."""
-    await _ensure_cafe_exists(session, cafe_id)
-    return await cafe_manager_crud.get_manager_ids_by_cafe(
-        session=session,
-        cafe_id=cafe_id,
-    )
-
-
 async def get_manager_cafe_id(
     session: AsyncSession,
     user_id: int,

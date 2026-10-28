@@ -2,7 +2,6 @@
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from repositories.base import CRUDBase
 from shared.models.cafe_manager import CafeManager
@@ -125,17 +124,13 @@ class CRUDCafeManager(CRUDBase[CafeManager]):
     ) -> list[CafeManager]:
         """Получить активных менеджеров кафе.
 
-        Благодаря lazy="selectin" в модели, объекты user и cafe
-        уже будут загружены и доступны через manager.user и manager.cafe.
+        Объекты user и cafe загружаются автоматически: в модели
+        CafeManager для этих связей уже задан lazy="selectin".
         """
         result = await session.execute(
             select(CafeManager).where(
                 CafeManager.cafe_id == cafe_id,
                 CafeManager.is_active.is_(True),
-            )
-            .options(
-                selectinload(CafeManager.user),
-                selectinload(CafeManager.cafe),
             ),
         )
         return list(result.scalars().all())
