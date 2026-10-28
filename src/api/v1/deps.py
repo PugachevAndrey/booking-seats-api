@@ -1,6 +1,7 @@
 """Зависимости FastAPI: доступ к БД, текущий пользователь, проверка прав."""
 
 from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from typing import Annotated
 
 import jwt
@@ -18,10 +19,11 @@ from shared.models.user import User
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
+@asynccontextmanager
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Обёртка над `get_session` для `Depends`."""
     async with get_session() as session:
-        yield session  # noqa: ASYNC119
+        yield session
 
 
 def get_bearer_token(
