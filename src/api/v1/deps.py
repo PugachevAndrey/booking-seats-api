@@ -24,31 +24,39 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
         yield session  # noqa: ASYNC119
 
 
-async def get_current_user(
-    credentials: Annotated[
-        HTTPAuthorizationCredentials | None,
-        Depends(bearer_scheme),
-    ],
-    session: Annotated[AsyncSession, Depends(get_db)],
-) -> User:
-    """Возвращает текущего пользователя по JWT из заголовка Authorization."""
+def get_bearer_token(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+) -> str:
+    """Возвращает токен из заголовка или 401."""
     if credentials is None or not credentials.credentials:
         raise UnauthorizedError('Требуется авторизация.')
+    return credentials.credentials
 
+
+def decode_token(token: Annotated[str, Depends(get_bearer_token)]) -> dict:
+    """Декодирует JWT или 401."""
     try:
-        payload = decode_access_token(credentials.credentials)
+        return decode_access_token(token)
     except jwt.PyJWTError:
         raise UnauthorizedError('Недействительный токен.')
 
+
+def extract_user_id(payload: Annotated[dict, Depends(decode_token)]) -> int:
+    """Достаёт sub из payload и приводит к int или 401."""
     subject = payload.get('sub')
     if subject is None:
         raise UnauthorizedError('Недействительный токен.')
-
     try:
-        user_id = int(subject)
+        return int(subject)
     except (TypeError, ValueError):
         raise UnauthorizedError('Недействительный токен.')
 
+
+async def get_current_user(
+    user_id: Annotated[int, Depends(extract_user_id)],
+    session: Annotated[AsyncSession, Depends(get_db)],
+) -> User:
+    """Возвращает пользователя по ID или 401, если не найден."""
     try:
         return await get_user(session, user_id)
     except NotFoundError:
@@ -92,5 +100,5 @@ async def get_optional_user(
         return None
     try:
         return await get_user(session, user_id)
-    except Exception:
+    except NotFoundError:
         return None
