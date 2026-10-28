@@ -2,6 +2,7 @@
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from repositories.base import CRUDBase
 from shared.models.cafe_manager import CafeManager
@@ -131,6 +132,10 @@ class CRUDCafeManager(CRUDBase[CafeManager]):
             select(CafeManager).where(
                 CafeManager.cafe_id == cafe_id,
                 CafeManager.is_active.is_(True),
+            )
+            .options(
+                selectinload(CafeManager.user),
+                selectinload(CafeManager.cafe),
             ),
         )
         return list(result.scalars().all())
