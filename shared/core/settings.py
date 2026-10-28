@@ -38,6 +38,8 @@ class Settings(BaseSettings):
     smtp_port: int = 587
     smtp_user: str = ''
     smtp_password: str = ''
+    smtp_from: str = ''
+    smtp_use_ssl: bool = True
 
     # Настройки Telegram
     telegram_bot_token: str = ''
