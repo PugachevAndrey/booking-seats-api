@@ -80,6 +80,8 @@ async def create_cafe(
     )
 
     await sync_cafe_managers(session, cafe.id, managers_id or None)
+    if managers_id:
+        await session.refresh(cafe, attribute_names=['managers'])
 
     return cafe
 
