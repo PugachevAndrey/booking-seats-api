@@ -8,7 +8,6 @@ from typing import Annotated
 from PIL import Image, UnidentifiedImageError
 from fastapi import APIRouter, Depends, File, UploadFile, status
 from fastapi.responses import FileResponse
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.v1.constants import (
     ALLOWED_CONTENT_TYPES,
@@ -16,7 +15,7 @@ from api.v1.constants import (
     MEDIA_DIR,
     UPLOAD_CHUNK_SIZE,
 )
-from api.v1.deps import get_current_staff, get_db
+from api.v1.deps import DbSession, get_current_staff
 from schemas.media import MediaInfo
 from services.media import create_media, get_media
 from shared.core.errors import NotFoundError, ValidationError
@@ -52,7 +51,7 @@ async def _read_limited(file: UploadFile, max_size: int) -> bytes:
 )
 async def upload_media(
     file: Annotated[UploadFile, File(...)],
-    session: Annotated[AsyncSession, Depends(get_db)],
+    session: DbSession,
     current_user: Annotated[User, Depends(get_current_staff)],
 ) -> MediaInfo:
     """Загрузка JPG/PNG."""
@@ -89,7 +88,7 @@ async def upload_media(
 )
 async def download_media(
     media_id: uuid.UUID,
-    session: Annotated[AsyncSession, Depends(get_db)],
+    session: DbSession,
 ) -> FileResponse:
     """Отдаёт файл по частям."""
     await get_media(session, media_id)

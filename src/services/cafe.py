@@ -83,6 +83,7 @@ async def create_cafe(
     if managers_id:
         await session.refresh(cafe, attribute_names=['managers'])
 
+    await session.commit()
     return cafe
 
 

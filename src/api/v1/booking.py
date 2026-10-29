@@ -5,9 +5,8 @@ from typing import Annotated
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.v1.deps import get_current_user, get_db
+from api.v1.deps import DbSession, get_current_user
 from schemas.booking import BookingCreate, BookingInfo, BookingUpdate
 from services.booking import (
     create_booking,
@@ -50,7 +49,7 @@ def _ensure_user_can_see(
 
 @router.get('', response_model=list[BookingInfo], summary='Список бронирований')
 async def list_bookings(
-    session: Annotated[AsyncSession, Depends(get_db)],
+    session: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> list[BookingInfo]:
     """Возвращает список бронирований."""
@@ -75,7 +74,7 @@ async def list_bookings(
 )
 async def create_booking_endpoint(
     data: BookingCreate,
-    session: Annotated[AsyncSession, Depends(get_db)],
+    session: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> BookingInfo:
     """Создание бронирования."""
@@ -116,7 +115,7 @@ async def create_booking_endpoint(
 )
 async def get_booking_by_id(
     booking_id: int,
-    session: Annotated[AsyncSession, Depends(get_db)],
+    session: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> BookingInfo:
     """Информация о бронировании."""
@@ -138,7 +137,7 @@ async def get_booking_by_id(
 async def update_booking_by_id(
     booking_id: int,
     data: BookingUpdate,
-    session: Annotated[AsyncSession, Depends(get_db)],
+    session: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> BookingInfo:
     """Обновление информации о бронировании."""

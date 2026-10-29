@@ -6,9 +6,9 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.v1.deps import (
+    DbSession,
     get_current_staff,
     get_current_user,
-    get_db,
     get_optional_user,
 )
 from schemas.user import UserCreate, UserInfo, UserUpdate
@@ -21,7 +21,7 @@ from services.user import (
     update_user,
 )
 from shared.core.enums import UserRole
-from shared.core.errors import NotFoundError, PermissionDeniedError
+from shared.core.errors import NotFoundError, PermissionDeniedError, ValidationError
 from shared.models.user import User
 
 router = APIRouter(prefix='/users', tags=['Пользователи'])
@@ -51,6 +51,12 @@ def _prepare_update_fields(
             fields['role'] = getattr(role_value, 'value', role_value)
         if 'is_active' in raw and raw['is_active'] is not None:
             fields['is_active'] = raw['is_active']
+    else:
+        forbidden = {'role', 'is_active'} & raw.keys()
+        if forbidden:
+            raise ValidationError(
+                f'Поля нельзя изменить: {", ".join(sorted(forbidden))}.',
+            )
 
     return fields
 
@@ -80,7 +86,7 @@ async def _ensure_manager_sees_user(
     summary='Получение списка пользователей',
 )
 async def list_users(
-    session: Annotated[AsyncSession, Depends(get_db)],
+    session: DbSession,
     current_user: Annotated[User, Depends(get_current_staff)],
 ) -> list[User]:
     """Список пользователей. Только админ или менеджер."""
@@ -98,7 +104,7 @@ async def list_users(
 )
 async def register_user(
     data: UserCreate,
-    session: Annotated[AsyncSession, Depends(get_db)],
+    session: DbSession,
     current_user: Annotated[User | None, Depends(get_optional_user)],
 ) -> User:
     """Регистрация. Доступна анониму, менеджеру и админу."""
@@ -140,7 +146,7 @@ async def get_me(
 )
 async def update_me(
     data: UserUpdate,
-    session: Annotated[AsyncSession, Depends(get_db)],
+    session: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> User:
     """Обновление своего профиля. Роль и is_active менять нельзя."""
@@ -162,7 +168,7 @@ async def update_me(
 )
 async def get_user_by_id(
     user_id: int,
-    session: Annotated[AsyncSession, Depends(get_db)],
+    session: DbSession,
     current_user: Annotated[User, Depends(get_current_staff)],
 ) -> User:
     """Пользователь по ID. Менеджер — только из своего кафе."""
@@ -178,7 +184,7 @@ async def get_user_by_id(
 async def update_user_by_id(
     user_id: int,
     data: UserUpdate,
-    session: Annotated[AsyncSession, Depends(get_db)],
+    session: DbSession,
     current_user: Annotated[User, Depends(get_current_staff)],
 ) -> User:
     """Обновление пользователя. Админ — любые поля, менеджер — профиль."""

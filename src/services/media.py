@@ -36,7 +36,9 @@ async def create_media(
     ensure_staff(actor_role)
     validate_media_file_name(file_name)
 
-    return await media_crud.create_from_dict(
+    media = await media_crud.create_from_dict(
         session=session,
         data={'file_name': file_name},
     )
+    await session.commit()
+    return media

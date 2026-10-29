@@ -33,7 +33,7 @@ class UserInfo(UserShortInfo, MainSchema):
 class UserCreate(BaseSchema):
     """Схема создания пользователя."""
 
-    username: str = Field(max_length=MAX_USERNAME_LENGTH)
+    username: str = Field(min_length=1, max_length=MAX_USERNAME_LENGTH)
     email: EmailStr | MISSING = Field(max_length=MAX_LENGTH, default=MISSING)
     phone: E164PhoneNumber | MISSING = MISSING
     tg_id: str | MISSING = Field(max_length=MAX_TG_LENGTH, default=MISSING)
