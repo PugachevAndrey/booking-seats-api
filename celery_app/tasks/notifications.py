@@ -23,7 +23,6 @@ logger = logging.getLogger(__name__)
 def send_sms(phone: str, text: str) -> str:
     """Отправка SMS."""
     logger.info('SMS to %s: %s', phone, text)
-    # TODO: интеграция с SMS-провайдером
     return f'SMS sent to {phone}'
 
 
@@ -51,9 +50,8 @@ def send_email(email: str, subject: str, text: str) -> str:
 
 @celery_app.task
 def send_telegram(tg_id: str, text: str) -> str:
-    """Отправка в Telegram."""
+    """Отправка в Telegram (заглушка)."""
     logger.info('Telegram to %s: %s', tg_id, text)
-    # TODO: интеграция с Telegram Bot API
     return f'Telegram sent to {tg_id}'
 
 
@@ -187,7 +185,6 @@ def notify_booking_reminder(booking_id: int) -> str:
                 booking.user_id,
                 booking.booking_date,
             )
-            # TODO: отправить напоминание
             return booking.id
 
     booking_id = _run(_notify())
