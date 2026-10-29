@@ -18,6 +18,7 @@ from shared.core.errors import (
     ValidationError,
 )
 from shared.models.booking import Booking
+from shared.models.table import Table
 from validators import validate_booking_date, validate_booking_note
 
 from .access import (
@@ -113,8 +114,8 @@ async def _ensure_table_and_slot_in_cafe(
     table_id: int,
     slot_id: int,
     cafe_id: int,
-) -> None:
-    """Проверяет, что стол и слот принадлежат кафе."""
+) -> Table:
+    """Проверяет, что стол и слот принадлежат кафе. Возвращает стол."""
     table = await table_crud.get(session=session, obj_id=table_id)
     if table is None or not table.is_active:
         raise NotFoundError(f'Стол {table_id} не найден.')
@@ -127,6 +128,8 @@ async def _ensure_table_and_slot_in_cafe(
     if slot.cafe_id != cafe_id:
         raise ValidationError('Слот не принадлежит указанному кафе.')
 
+    return table
+
 
 async def _ensure_pairs_free(
     session: AsyncSession,
@@ -134,17 +137,20 @@ async def _ensure_pairs_free(
     cafe_id: int,
     booking_date: date,
     exclude_booking_id: int | None = None,
+    guest_number: int | None = None,
 ) -> None:
     """Проверяет, что столы и слоты принадлежат кафе и свободны."""
     await _ensure_cafe_active(session, cafe_id)
 
+    total_seats = 0
     for table_id, slot_id in pairs:
-        await _ensure_table_and_slot_in_cafe(
+        table = await _ensure_table_and_slot_in_cafe(
             session,
             table_id,
             slot_id,
             cafe_id,
         )
+        total_seats += table.seat_number
         if await is_slot_busy(
             session,
             table_id,
@@ -153,6 +159,11 @@ async def _ensure_pairs_free(
             exclude_booking_id=exclude_booking_id,
         ):
             raise ConflictError(SLOT_BUSY_MESSAGE)
+
+    if guest_number is not None and guest_number > total_seats:
+        raise ValidationError(
+            f'Количество гостей ({guest_number}) больше количества мест ({total_seats}).',
+        )
 
 
 async def _ensure_date_is_free(
@@ -286,7 +297,13 @@ async def create_booking(
                     'Нельзя бронировать на прошедшее время.',
                 )
 
-    await _ensure_pairs_free(session, pairs, cafe_id, booking_date)
+    await _ensure_pairs_free(
+        session,
+        pairs,
+        cafe_id,
+        booking_date,
+        guest_number=guest_number,
+    )
 
     booking = await booking_crud.create_from_dict(
         session=session,
@@ -305,6 +322,7 @@ async def create_booking(
         booking_id=booking.id,
         pairs=pairs,
     )
+    await session.commit()
     return booking
 
 
@@ -347,12 +365,14 @@ async def update_booking(
     new_date = changes.get('booking_date', booking.booking_date)
 
     if pairs is not None:
+        new_guest_number = changes.get('guest_number', booking.guest_number)
         await _ensure_pairs_free(
             session,
             pairs,
             booking.cafe_id,
             new_date,
             exclude_booking_id=booking_id,
+            guest_number=new_guest_number,
         )
     elif new_date != booking.booking_date:
         await _ensure_date_is_free(session, booking_id, new_date)

@@ -1,7 +1,6 @@
 """Зависимости FastAPI: доступ к БД, текущий пользователь, проверка прав."""
 
 from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
 from typing import Annotated
 
 import jwt
@@ -19,11 +18,17 @@ from shared.models.user import User
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
-@asynccontextmanager
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """Обёртка над `get_session` для `Depends`."""
-    async with get_session() as session:
+    """Сессия для Depends: возобновляет get_session, чтобы commit() выполнился."""
+    cm = get_session()
+    session = await cm.__aenter__()
+    try:
         yield session
+    finally:
+        await cm.__aexit__(None, None, None)
+
+
+DbSession = Annotated[AsyncSession, Depends(get_db, scope='function')]
 
 
 def get_bearer_token(
@@ -56,7 +61,7 @@ def extract_user_id(payload: Annotated[dict, Depends(decode_token)]) -> int:
 
 async def get_current_user(
     user_id: Annotated[int, Depends(extract_user_id)],
-    session: Annotated[AsyncSession, Depends(get_db)],
+    session: DbSession,
 ) -> User:
     """Возвращает пользователя по ID или 401, если не найден."""
     try:
@@ -90,7 +95,7 @@ async def get_optional_user(
         HTTPAuthorizationCredentials | None,
         Depends(bearer_scheme),
     ],
-    session: Annotated[AsyncSession, Depends(get_db)],
+    session: DbSession,
 ) -> User | None:
     """Возвращает пользователя, если токен валиден, иначе None."""
     if credentials is None or not credentials.credentials:

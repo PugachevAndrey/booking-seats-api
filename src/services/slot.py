@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from repositories.slot import slot_crud
 from schemas.slot import TimeSlotUpdate
+from services.cafe import get_cafe
 from shared.core.errors import NotFoundError, ValidationError
 from shared.models.slot import Slot
 from validators import validate_slot_time_range
@@ -57,6 +58,7 @@ async def create_slot(
     Длину описания проверяет схема TimeSlotCreate.
     """
     ensure_cafe_access(actor_role, actor_cafe_id, cafe_id)
+    await get_cafe(session, cafe_id)
     validate_slot_time_range(start_time, end_time)
 
     data: dict[str, Any] = {
@@ -67,7 +69,9 @@ async def create_slot(
     if description is not None:
         data['description'] = description
 
-    return await slot_crud.create_from_dict(session=session, data=data)
+    slot = await slot_crud.create_from_dict(session=session, data=data)
+    await session.commit()
+    return slot
 
 
 async def update_slot(

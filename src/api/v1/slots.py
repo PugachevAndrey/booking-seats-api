@@ -3,9 +3,8 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.v1.deps import get_current_staff, get_current_user, get_db
+from api.v1.deps import DbSession, get_current_staff, get_current_user
 from schemas.slot import TimeSlotCreate, TimeSlotInfo, TimeSlotUpdate
 from services.cafe_manager import get_manager_cafe_id
 from services.slot import (
@@ -37,7 +36,7 @@ def _slot_to_info(slot: Slot) -> TimeSlotInfo:
 )
 async def list_slots(
     cafe_id: int,
-    session: Annotated[AsyncSession, Depends(get_db)],
+    session: DbSession,
     _: Annotated[User, Depends(get_current_user)],
 ) -> list[TimeSlotInfo]:
     """Возвращает список слотов."""
@@ -54,7 +53,7 @@ async def list_slots(
 async def create_slot_endpoint(
     cafe_id: int,
     data: TimeSlotCreate,
-    session: Annotated[AsyncSession, Depends(get_db)],
+    session: DbSession,
     current_user: Annotated[User, Depends(get_current_staff)],
 ) -> TimeSlotInfo:
     """Создание слота."""
@@ -83,7 +82,7 @@ async def create_slot_endpoint(
 async def get_slot_by_id(
     cafe_id: int,
     slot_id: int,
-    session: Annotated[AsyncSession, Depends(get_db)],
+    session: DbSession,
     _: Annotated[User, Depends(get_current_user)],
 ) -> TimeSlotInfo:
     """Информация о слоте."""
@@ -102,7 +101,7 @@ async def update_slot_by_id(
     cafe_id: int,
     slot_id: int,
     data: TimeSlotUpdate,
-    session: Annotated[AsyncSession, Depends(get_db)],
+    session: DbSession,
     current_user: Annotated[User, Depends(get_current_staff)],
 ) -> TimeSlotInfo:
     """Обновление информации о слоте."""

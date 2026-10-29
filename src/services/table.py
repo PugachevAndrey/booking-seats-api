@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from repositories.table import table_crud
 from schemas.table import TableUpdate
+from services.cafe import get_cafe
 from shared.core.errors import NotFoundError, ValidationError
 from shared.models.table import Table
 
@@ -63,6 +64,7 @@ async def create_table(
     Длину описания проверяет схема TableCreate.
     """
     ensure_cafe_access(actor_role, actor_cafe_id, cafe_id)
+    await get_cafe(session, cafe_id)
     _validate_seat_number(seat_number)
 
     data: dict[str, Any] = {
@@ -72,7 +74,9 @@ async def create_table(
     if description is not None:
         data['description'] = description
 
-    return await table_crud.create_from_dict(session=session, data=data)
+    table = await table_crud.create_from_dict(session=session, data=data)
+    await session.commit()
+    return table
 
 
 async def update_table(

@@ -25,9 +25,7 @@ UNIQUE_VIOLATION_CODE = '23505'  # PostgreSQL: unique_violation
 
 def _is_unique_violation(exc: IntegrityError) -> bool:
     """Проверяет, что IntegrityError вызвана нарушением UNIQUE."""
-    return getattr(getattr(exc, 'orig', None), 'pgcode', None) == (
-        UNIQUE_VIOLATION_CODE
-    )
+    return getattr(getattr(exc, 'orig', None), 'pgcode', None) == (UNIQUE_VIOLATION_CODE)
 
 
 def _conflict_from_integrity() -> ConflictError:
@@ -119,7 +117,7 @@ async def create_user(
     ensure_text_not_blank(password, 'Пароль')
 
     try:
-        return await user_crud.create_from_dict(
+        user = await user_crud.create_from_dict(
             session=session,
             data={
                 'username': username,
@@ -130,6 +128,8 @@ async def create_user(
                 'role': role,
             },
         )
+        await session.commit()
+        return user
     except IntegrityError as exc:
         await session.rollback()
         if _is_unique_violation(exc):
@@ -182,7 +182,11 @@ async def update_user(
     user = await get_user(session, user_id)
 
     _validate_change_permission(
-        is_self, is_admin, actor_role, fields, user,
+        is_self,
+        is_admin,
+        actor_role,
+        fields,
+        user,
     )
 
     if 'role' in fields:
@@ -195,14 +199,17 @@ async def update_user(
 
     if not fields:
         await session.flush()
+        await session.commit()
         return user
 
     try:
-        return await user_crud.update(
+        updated = await user_crud.update(
             session=session,
             db_obj=user,
             obj_in=UserUpdate(**fields),
         )
+        await session.commit()
+        return updated
     except IntegrityError as exc:
         await session.rollback()
         if _is_unique_violation(exc):
@@ -226,3 +233,4 @@ async def delete_user(
         db_obj=user,
         obj_in=UserUpdate(is_active=False),
     )
+    await session.commit()

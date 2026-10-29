@@ -1,12 +1,9 @@
 """Аутентификация: вход в систему и выдача JWT-токена."""
 
-from typing import Annotated
-
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, status
 from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.v1.deps import get_db
+from api.v1.deps import DbSession
 from api.validators import validate_login
 from schemas.base import AuthSchema
 from shared.core.security import create_access_token
@@ -34,7 +31,7 @@ class TokenResponse(BaseModel):
 )
 async def login(
     data: AuthSchema,
-    session: Annotated[AsyncSession, Depends(get_db)],
+    session: DbSession,
 ) -> TokenResponse:
     """Проверяет логин/пароль и возвращает JWT."""
     user = await validate_login(data, session)

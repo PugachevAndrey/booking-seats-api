@@ -3,9 +3,8 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.v1.deps import get_current_admin, get_current_staff, get_current_user, get_db
+from api.v1.deps import DbSession, get_current_admin, get_current_staff, get_current_user
 from schemas.cafe import CafeCreate, CafeInfo, CafeUpdate
 from services.cafe import (
     create_cafe,
@@ -28,7 +27,7 @@ def _cafe_to_info(cafe: Cafe) -> CafeInfo:
 
 @router.get('', response_model=list[CafeInfo], summary='Список кафе')
 async def list_cafes(
-    session: Annotated[AsyncSession, Depends(get_db)],
+    session: DbSession,
     _current_user: Annotated[User, Depends(get_current_user)],
 ) -> list[CafeInfo]:
     """Возвращает список кафе."""
@@ -44,7 +43,7 @@ async def list_cafes(
 )
 async def create_cafe_endpoint(
     data: CafeCreate,
-    session: Annotated[AsyncSession, Depends(get_db)],
+    session: DbSession,
     current_user: Annotated[User, Depends(get_current_admin)],
 ) -> CafeInfo:
     """Создание кафе."""
@@ -70,7 +69,7 @@ async def create_cafe_endpoint(
 )
 async def get_cafe_by_id(
     cafe_id: int,
-    session: Annotated[AsyncSession, Depends(get_db)],
+    session: DbSession,
     _current_user: Annotated[User, Depends(get_current_user)],
 ) -> CafeInfo:
     """Информация о кафе."""
@@ -86,7 +85,7 @@ async def get_cafe_by_id(
 async def update_cafe_by_id(
     cafe_id: int,
     data: CafeUpdate,
-    session: Annotated[AsyncSession, Depends(get_db)],
+    session: DbSession,
     current_user: Annotated[User, Depends(get_current_staff)],
 ) -> CafeInfo:
     """Обновление информации о кафе."""

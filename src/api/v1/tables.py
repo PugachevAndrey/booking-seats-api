@@ -3,9 +3,8 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.v1.deps import get_current_staff, get_current_user, get_db
+from api.v1.deps import DbSession, get_current_staff, get_current_user
 from schemas.table import TableCreate, TableInfo, TableUpdate
 from services.cafe_manager import get_manager_cafe_id
 from services.table import (
@@ -30,7 +29,7 @@ def _table_to_info(table: Table) -> TableInfo:
 @router.get('', response_model=list[TableInfo], summary='Список столов в кафе')
 async def list_tables(
     cafe_id: int,
-    session: Annotated[AsyncSession, Depends(get_db)],
+    session: DbSession,
     _: Annotated[User, Depends(get_current_user)],
 ) -> list[TableInfo]:
     """Возвращает список столиков."""
@@ -47,7 +46,7 @@ async def list_tables(
 async def create_table_endpoint(
     cafe_id: int,
     data: TableCreate,
-    session: Annotated[AsyncSession, Depends(get_db)],
+    session: DbSession,
     current_user: Annotated[User, Depends(get_current_staff)],
 ) -> TableInfo:
     """Создание столика."""
@@ -75,7 +74,7 @@ async def create_table_endpoint(
 async def get_table_by_id(
     cafe_id: int,
     table_id: int,
-    session: Annotated[AsyncSession, Depends(get_db)],
+    session: DbSession,
     _: Annotated[User, Depends(get_current_user)],
 ) -> TableInfo:
     """Возвращает столик."""
@@ -94,7 +93,7 @@ async def update_table_by_id(
     cafe_id: int,
     table_id: int,
     data: TableUpdate,
-    session: Annotated[AsyncSession, Depends(get_db)],
+    session: DbSession,
     current_user: Annotated[User, Depends(get_current_staff)],
 ) -> TableInfo:
     """Обновление информации о столике."""
