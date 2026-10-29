@@ -65,7 +65,8 @@ async def get_bookings(
     elif actor_role == ROLE_ADMIN:
         bookings = await booking_crud.get_multi(session=session)
         if booking_date is not None:
-            bookings = [item for item in bookings if item.booking_date == booking_date]
+            bookings = [
+                item for item in bookings if item.booking_date == booking_date]
     else:
         if actor_cafe_id is None:
             return []
@@ -322,6 +323,11 @@ async def create_booking(
         booking_id=booking.id,
         pairs=pairs,
     )
+    links = await booking_crud.get_active_links(
+        session=session,
+        booking_id=booking.id,
+    )
+    booking.tables_slots = links
     await session.commit()
     return booking
 
