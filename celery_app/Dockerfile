@@ -2,7 +2,6 @@ FROM python:3.12-alpine
 
 SHELL ["/bin/sh", "-exc"]
 
-# runtime-библиотеки для Pillow + netcat (вместо apt-get)
 RUN apk add --no-cache \
     gcc \
     musl-dev \
@@ -19,7 +18,6 @@ COPY --link --from=ghcr.io/astral-sh/uv:0.4 /uv /usr/local/bin/uv
 ARG USER_ID=1000
 ARG GROUP_ID=1000
 
-# Alpine: addgroup/adduser (BusyBox), не groupadd/useradd
 RUN addgroup -g ${GROUP_ID} devuser \
     && adduser -u ${USER_ID} -G devuser -D -s /bin/sh devuser
 

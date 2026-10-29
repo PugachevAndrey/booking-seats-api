@@ -1,5 +1,6 @@
 """Точка входа: сборка FastAPI-приложения и подключение роутеров."""
 
+import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
@@ -16,7 +17,11 @@ from api.v1 import (
     users,
 )
 from services.exception_handlers import register_exception_handlers
+from shared.core.logging_config import setup_logging
 from shared.core.settings import settings
+
+setup_logging()
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -49,6 +54,7 @@ app.include_router(media.router, prefix='/api/v1')
 )
 async def index() -> dict:
     """Основная страница."""
+    logger.info('GET / — health-check')
     return {
         'app': f'{settings.title} ({settings.version})',
         'description': settings.description,
