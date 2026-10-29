@@ -1,16 +1,27 @@
-FROM python:3.12-slim
+FROM python:3.12-alpine
 
 SHELL ["/bin/sh", "-exc"]
 
-RUN apt-get update && apt-get upgrade -y && apt-get install --quiet --no-install-recommends --assume-yes netcat-traditional
+# runtime-библиотеки для Pillow + netcat (вместо apt-get)
+RUN apk add --no-cache \
+    gcc \
+    musl-dev \
+    python3-dev \
+    jpeg-dev \
+    zlib-dev \
+    libjpeg-turbo-dev \
+    libpng-dev \
+    freetype-dev \
+    netcat-openbsd
 
 COPY --link --from=ghcr.io/astral-sh/uv:0.4 /uv /usr/local/bin/uv
 
 ARG USER_ID=1000
 ARG GROUP_ID=1000
 
-RUN groupadd -g ${GROUP_ID} devuser \
-    && useradd -u ${USER_ID} -g devuser -m -s /bin/bash devuser
+# Alpine: addgroup/adduser (BusyBox), не groupadd/useradd
+RUN addgroup -g ${GROUP_ID} devuser \
+    && adduser -u ${USER_ID} -G devuser -D -s /bin/sh devuser
 
 USER devuser
 
