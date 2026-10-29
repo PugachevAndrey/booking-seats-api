@@ -50,8 +50,6 @@ class UserCreate(BaseSchema):
 class UserUpdate(BaseSchema):
     """Схема изменения пользователя."""
 
-    # Проверка почта или телефон при апдейте зашита в сервисе
-
     username: str | MISSING = Field(max_length=MAX_USERNAME_LENGTH, default=MISSING)
     email: EmailStr | MISSING = Field(max_length=MAX_LENGTH, default=MISSING)
     phone: E164PhoneNumber | MISSING = MISSING
