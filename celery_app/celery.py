@@ -1,4 +1,5 @@
 """Настройка Celery."""
+
 from celery import Celery
 
 from shared.core.settings import settings
@@ -7,6 +8,7 @@ celery_app = Celery(
     'booking_tasks',
     broker=settings.rabbitmq_url,
     backend=None,
+    include=['celery_app.tasks.notifications'],
 )
 
 celery_app.conf.update(

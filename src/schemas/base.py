@@ -5,14 +5,12 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 from pydantic_extra_types.phone_numbers import PhoneNumber
 
-from .constants import MAX_LENGTH
-
 
 class AuthSchema(BaseModel):
     """Схема аутентификации."""
 
     login: str
-    password: SecretStr = Field(MAX_LENGTH)
+    password: SecretStr = Field(..., max_length=255)
 
     model_config = ConfigDict(extra='forbid')
 

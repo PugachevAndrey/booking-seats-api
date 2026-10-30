@@ -17,7 +17,7 @@ from .cafe_manager import (
 )
 
 CAFE_EDITABLE_FIELDS = frozenset(
-    {'name', 'address', 'phone', 'description', 'photo_id'},
+    {'name', 'address', 'phone', 'description', 'photo_id', 'is_active'},
 )
 
 

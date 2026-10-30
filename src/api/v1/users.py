@@ -69,7 +69,7 @@ async def _ensure_manager_sees_user(
     """Менеджер может видеть только пользователей своего кафе."""
     await get_user(session, user_id)
 
-    if current_user.role == 'admin':
+    if current_user.role == UserRole.ADMIN.value:
         return
 
     cafe_id = await get_manager_cafe_id(session, current_user.id)

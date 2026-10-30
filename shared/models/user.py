@@ -15,6 +15,7 @@ class User(Base):
 
     username: Mapped[str] = mapped_column(
         String(100),
+        unique=True,
         comment='Имя пользователя',
     )
     email: Mapped[str | None] = mapped_column(
