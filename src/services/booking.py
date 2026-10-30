@@ -30,7 +30,16 @@ from .access import (
 from .user import get_user
 
 BOOKING_EDITABLE_FIELDS = frozenset(
-    {'guest_number', 'note', 'status', 'booking_date', 'tables_slots'},
+    {
+        'guest_number',
+        'note',
+        'status',
+        'booking_date',
+        'tables_slots',
+        'is_active',
+        'remind_before_minutes',
+        'reminder_task_id',
+    },
 )
 GUEST_NUMBER_MIN = 1
 BUYABLE_STATUSES = (
@@ -65,8 +74,7 @@ async def get_bookings(
     elif actor_role == ROLE_ADMIN:
         bookings = await booking_crud.get_multi(session=session)
         if booking_date is not None:
-            bookings = [
-                item for item in bookings if item.booking_date == booking_date]
+            bookings = [item for item in bookings if item.booking_date == booking_date]
     else:
         if actor_cafe_id is None:
             return []
@@ -89,11 +97,16 @@ async def is_slot_busy(
     booking_date: date,
     exclude_booking_id: int | None = None,
 ) -> bool:
-    """Проверяет, занят ли стол в слоте на дату брони."""
+    """Проверяет, занят ли стол в слоте на дату брони (с учетом пересечений)."""
+    slot = await slot_crud.get(session=session, obj_id=slot_id)
+    if slot is None:
+        raise NotFoundError(f'Слот {slot_id} не найден.')
+
     return await booking_crud.is_slot_busy(
         session=session,
         table_id=table_id,
-        slot_id=slot_id,
+        start_time=slot.start_time,
+        end_time=slot.end_time,
         booking_date=booking_date,
         statuses=BUYABLE_STATUSES,
         exclude_booking_id=exclude_booking_id,
@@ -443,4 +456,18 @@ async def user_has_booking_in_cafe(
         session=session,
         user_id=user_id,
         cafe_id=cafe_id,
+    )
+
+
+async def save_reminder_task(
+    session: AsyncSession,
+    booking_id: int,
+    task_id: str | None,
+) -> None:
+    """Сохраняет или очищает ID задачи напоминания."""
+    booking = await get_booking(session, booking_id)
+    await booking_crud.update(
+        session=session,
+        db_obj=booking,
+        obj_in=BookingUpdate(reminder_task_id=task_id),
     )

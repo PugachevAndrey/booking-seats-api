@@ -17,15 +17,16 @@ celery_client = Celery(
 
 
 def send_notification(task_name: str, booking_id: int, **kwargs: Any) -> None:
-    """Отправить задачу в Celery, не блокируя API. Логирует при недоступном брокере."""
+    """Отправить задачу в Celery, не блокируя API. Возвращает ID задачи."""
     try:
-        celery_client.send_task(
+        result = celery_client.send_task(
             task_name,
             args=[booking_id],
             retry=False,
             connection_timeout=1,
             **kwargs,
         )
+        return result.id
     except Exception as exc:
         logger.warning(
             'Не удалось отправить %s для брони %s: %s',
@@ -33,6 +34,18 @@ def send_notification(task_name: str, booking_id: int, **kwargs: Any) -> None:
             booking_id,
             exc,
         )
+        return None
+
+
+def revoke_task(task_id: str | None) -> None:
+    """Отзывает задачу Celery (например, напоминание при отмене брони)."""
+    if not task_id:
+        return
+    try:
+        celery_client.control.revoke(task_id, terminate=False)
+        logger.info('Задача %s отозвана', task_id)
+    except Exception as exc:
+        logger.warning('Не удалось отозвать задачу %s: %s', task_id, exc)
 
 
 celery_client.conf.update(

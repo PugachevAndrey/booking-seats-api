@@ -164,6 +164,12 @@ def _validate_change_permission(
         if merged_email is None and merged_phone is None:
             raise ValidationError('Нужен email или телефон.')
 
+    if is_self:
+        if 'role' in fields:
+            raise ValidationError('Нельзя менять собственную роль.')
+        if fields.get('is_active') is False:
+            raise ValidationError('Нельзя заблокировать самого себя.')
+
 
 async def update_user(
     session: AsyncSession,

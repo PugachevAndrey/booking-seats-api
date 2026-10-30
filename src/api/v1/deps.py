@@ -65,9 +65,13 @@ async def get_current_user(
 ) -> User:
     """Возвращает пользователя по ID или 401, если не найден."""
     try:
-        return await get_user(session, user_id)
+        user = await get_user(session, user_id)
     except NotFoundError:
         raise UnauthorizedError('Недействительный токен.')
+    if not user.is_active:
+        raise UnauthorizedError('Пользователь заблокирован.')
+
+    return user
 
 
 async def get_current_staff(

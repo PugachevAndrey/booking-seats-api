@@ -63,3 +63,14 @@ class Booking(Base):
             'booking_date',
         ),
     )
+
+    remind_before_minutes: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+        comment='За сколько минут напомнить',
+    )
+    reminder_task_id: Mapped[str | None] = mapped_column(
+        String(155),
+        nullable=True,
+        comment='ID задачи Celery',
+    )

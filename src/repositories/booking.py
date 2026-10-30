@@ -1,6 +1,6 @@
 """Репозиторий бронирований."""
 
-from datetime import date
+from datetime import date, time
 
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from repositories.base import CRUDBase
 from shared.models.booking import Booking
 from shared.models.booking_tables_slot import BookingTablesSlot
+from shared.models.slot import Slot
 
 
 class CRUDBooking(CRUDBase[Booking]):
@@ -134,7 +135,8 @@ class CRUDBooking(CRUDBase[Booking]):
         self,
         session: AsyncSession,
         table_id: int,
-        slot_id: int,
+        start_time: time,
+        end_time: time,
         booking_date: date,
         statuses: tuple[str, ...],
         exclude_booking_id: int | None = None,
@@ -142,17 +144,16 @@ class CRUDBooking(CRUDBase[Booking]):
         """Проверить, занят ли стол в слоте на дату."""
         query = (
             select(BookingTablesSlot)
-            .join(
-                Booking,
-                Booking.id == BookingTablesSlot.booking_id,
-            )
+            .join(Booking, Booking.id == BookingTablesSlot.booking_id)
+            .join(Slot, Slot.id == BookingTablesSlot.slot_id)
             .where(
                 BookingTablesSlot.table_id == table_id,
-                BookingTablesSlot.slot_id == slot_id,
                 BookingTablesSlot.is_active.is_(True),
                 Booking.is_active.is_(True),
                 Booking.status.in_(statuses),
                 Booking.booking_date == booking_date,
+                Slot.start_time < end_time,
+                Slot.end_time > start_time,
             )
         )
         if exclude_booking_id is not None:

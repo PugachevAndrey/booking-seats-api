@@ -37,7 +37,7 @@ class CafeCreate(BaseSchema):
     address: str = Field(min_length=MIN_SYMBOL, max_length=ADDRESS_LENGTH)
     phone: E164PhoneNumber
     description: str | MISSING = MISSING
-    photo_id: UUID | MISSING = MISSING
+    photo_id: UUID | None | MISSING = MISSING
     managers_id: list[int] = Field(min_length=MIN_SYMBOL)
 
 
@@ -48,6 +48,6 @@ class CafeUpdate(BaseSchema):
     address: str | MISSING = Field(min_length=MIN_SYMBOL, max_length=ADDRESS_LENGTH, default=MISSING)
     phone: E164PhoneNumber | MISSING = MISSING
     description: str | MISSING = MISSING
-    photo_id: UUID | MISSING = MISSING
+    photo_id: UUID | None | MISSING = MISSING
     managers_id: list[int] | MISSING = Field(min_length=MIN_SYMBOL, default=MISSING)
     is_active: bool | MISSING = MISSING

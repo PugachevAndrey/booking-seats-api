@@ -36,6 +36,7 @@ class BookingCreate(BaseSchema):
     guest_number: int
     note: str | None | MISSING = MISSING
     booking_date: date
+    remind_before_minutes: int | None | MISSING = MISSING
 
 
 class BookingUpdate(BaseSchema):
@@ -47,3 +48,5 @@ class BookingUpdate(BaseSchema):
     status: BookingStatus | MISSING = MISSING
     booking_date: date | MISSING = MISSING
     is_active: bool | MISSING = MISSING
+    reminder_task_id: str | None | MISSING = MISSING
+    remind_before_minutes: int | None | MISSING = MISSING
