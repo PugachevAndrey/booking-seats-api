@@ -28,10 +28,18 @@ def _cafe_to_info(cafe: Cafe) -> CafeInfo:
 @router.get('', response_model=list[CafeInfo], summary='Список кафе')
 async def list_cafes(
     session: DbSession,
-    _current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    show_active: bool | None = None,
 ) -> list[CafeInfo]:
     """Возвращает список кафе."""
-    cafes = await get_cafes(session)
+    if current_user.role == UserRole.USER.value:
+        is_active = True
+    elif current_user.role == UserRole.MANAGER.value:
+        is_active = True if show_active is None else show_active
+    else:
+        is_active = show_active
+
+    cafes = await get_cafes(session, is_active=is_active)
     return [_cafe_to_info(cafe) for cafe in cafes]
 
 
@@ -70,10 +78,11 @@ async def create_cafe_endpoint(
 async def get_cafe_by_id(
     cafe_id: int,
     session: DbSession,
-    _current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> CafeInfo:
     """Информация о кафе."""
-    cafe = await get_cafe(session, cafe_id)
+    include_inactive = current_user.role != UserRole.USER.value
+    cafe = await get_cafe(session, cafe_id, include_inactive=include_inactive)
     return _cafe_to_info(cafe)
 
 
