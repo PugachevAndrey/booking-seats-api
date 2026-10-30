@@ -37,7 +37,7 @@ class UserCreate(BaseSchema):
     email: EmailStr | MISSING = Field(max_length=MAX_LENGTH, default=MISSING)
     phone: E164PhoneNumber | MISSING = Field(
         default=MISSING,
-        json_schema_extra={'example': '+14155552671'}
+        json_schema_extra={'example': '+14155552671'},
     )
     tg_id: str | MISSING = Field(max_length=MAX_TG_LENGTH, default=MISSING)
     password: str = Field(max_length=MAX_LENGTH, min_length=MIN_PASS)
@@ -57,7 +57,7 @@ class UserUpdate(BaseSchema):
     email: EmailStr | MISSING = Field(max_length=MAX_LENGTH, default=MISSING)
     phone: E164PhoneNumber | MISSING = Field(
         default=MISSING,
-        json_schema_extra={'example': '+14155552671'}
+        json_schema_extra={'example': '+14155552671'},
     )
     tg_id: str | MISSING = Field(max_length=MAX_TG_LENGTH, default=MISSING)
     role: UserRole | MISSING = MISSING

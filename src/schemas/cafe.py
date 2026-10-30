@@ -36,7 +36,7 @@ class CafeCreate(BaseSchema):
     name: str = Field(min_length=MIN_SYMBOL, max_length=MAX_LENGTH)
     address: str = Field(min_length=MIN_SYMBOL, max_length=ADDRESS_LENGTH)
     phone: E164PhoneNumber = Field(
-        json_schema_extra={'example': '+14155552671'}
+        json_schema_extra={'example': '+14155552671'},
     )
     description: str | MISSING = MISSING
     photo_id: UUID | None | MISSING = MISSING
@@ -50,7 +50,7 @@ class CafeUpdate(BaseSchema):
     address: str | MISSING = Field(min_length=MIN_SYMBOL, max_length=ADDRESS_LENGTH, default=MISSING)
     phone: E164PhoneNumber | MISSING = Field(
         default=MISSING,
-        json_schema_extra={'example': '+14155552671'}
+        json_schema_extra={'example': '+14155552671'},
     )
     description: str | MISSING = MISSING
     photo_id: UUID | None | MISSING = MISSING
