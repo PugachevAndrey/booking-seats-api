@@ -15,7 +15,7 @@ from validators import validate_slot_time_range
 from .access import ensure_cafe_access
 
 SLOT_EDITABLE_FIELDS = frozenset(
-    {'start_time', 'end_time', 'description'},
+    {'start_time', 'end_time', 'description', 'is_active'},
 )
 SLOT_TIME_FIELDS = frozenset({'start_time', 'end_time'})
 

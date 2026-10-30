@@ -10,8 +10,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from shared.core.errors import DomainError, error_payload
 from validators import (
     DEFAULT_HTTP_MESSAGE,
-    build_http_error_code,
-    build_validation_error_content,
+    build_validation_message,
 )
 
 logger = logging.getLogger(__name__)
@@ -39,7 +38,10 @@ def register_exception_handlers(application: FastAPI) -> None:
         """Обрабатывает ошибки валидации запроса."""
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            content=build_validation_error_content(exception),
+            content={
+                'code': 422,
+                'message': build_validation_message(exception),
+            },
         )
 
     @application.exception_handler(StarletteHTTPException)
@@ -55,10 +57,11 @@ def register_exception_handlers(application: FastAPI) -> None:
             message = DEFAULT_HTTP_MESSAGE
         else:
             message = str(detail)
+
         return JSONResponse(
             status_code=exception.status_code,
             content={
-                'code': build_http_error_code(exception.status_code),
+                'code': exception.status_code,
                 'message': message,
             },
             headers=getattr(exception, 'headers', None) or {},
@@ -74,7 +77,7 @@ def register_exception_handlers(application: FastAPI) -> None:
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={
-                'code': 'HTTP_500',
+                'code': 500,
                 'message': 'Внутренняя ошибка сервера.',
             },
         )

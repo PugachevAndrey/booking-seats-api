@@ -12,7 +12,7 @@ from shared.models.table import Table
 
 from .access import ensure_cafe_access
 
-TABLE_EDITABLE_FIELDS = frozenset({'description', 'seat_number'})
+TABLE_EDITABLE_FIELDS = frozenset({'description', 'seat_number', 'is_active'})
 SEAT_NUMBER_MIN = 1
 
 

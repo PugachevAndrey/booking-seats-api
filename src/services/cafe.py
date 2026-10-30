@@ -17,7 +17,7 @@ from .cafe_manager import (
 )
 
 CAFE_EDITABLE_FIELDS = frozenset(
-    {'name', 'address', 'phone', 'description', 'photo_id'},
+    {'name', 'address', 'phone', 'description', 'photo_id', 'is_active'},
 )
 
 
@@ -40,15 +40,15 @@ async def get_cafe(
 
 async def get_cafes(
     session: AsyncSession,
-    include_inactive: bool = False,
+    is_active: bool | None = None,
 ) -> list[Cafe]:
     """Возвращает список кафе.
 
-    include_inactive=True — для персонала, видны мягко удалённые кафе.
+    is_active=None — все кафе; True — только активные; False — только неактивные.
     """
     cafes = await cafe_crud.get_multi(session=session)
-    if not include_inactive:
-        cafes = [cafe for cafe in cafes if cafe.is_active]
+    if is_active is not None:
+        cafes = [cafe for cafe in cafes if cafe.is_active == is_active]
     return sorted(cafes, key=lambda cafe: cafe.id)
 
 
@@ -59,7 +59,7 @@ async def create_cafe(
     address: str,
     phone: str,
     description: str | None,
-    photo_id: uuid.UUID,
+    photo_id: uuid.UUID | None,
     managers_id: list[int] | None = None,
 ) -> Cafe:
     """Создаёт кафе и привязывает менеджеров.

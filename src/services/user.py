@@ -20,7 +20,7 @@ PROFILE_FIELDS = frozenset({'username', 'email', 'phone', 'tg_id'})
 STAFF_EDITABLE_FIELDS = USER_EDITABLE_FIELDS | {'is_active'}
 
 UNIQUE_CONFLICT_MESSAGE = 'Пользователь с такими данными уже существует.'
-UNIQUE_VIOLATION_CODE = '23505'  # PostgreSQL: unique_violation
+UNIQUE_VIOLATION_CODE = '23505'
 
 
 def _is_unique_violation(exc: IntegrityError) -> bool:
@@ -163,6 +163,12 @@ def _validate_change_permission(
         merged_phone = fields.get('phone', user.phone)
         if merged_email is None and merged_phone is None:
             raise ValidationError('Нужен email или телефон.')
+
+    if is_self:
+        if 'role' in fields:
+            raise ValidationError('Нельзя менять собственную роль.')
+        if fields.get('is_active') is False:
+            raise ValidationError('Нельзя заблокировать самого себя.')
 
 
 async def update_user(

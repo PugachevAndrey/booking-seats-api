@@ -39,7 +39,7 @@ class CafeCreate(BaseSchema):
         json_schema_extra={'example': '+14155552671'}
     )
     description: str | MISSING = MISSING
-    photo_id: UUID | MISSING = MISSING
+    photo_id: UUID | None | MISSING = MISSING
     managers_id: list[int] = Field(min_length=MIN_SYMBOL)
 
 
@@ -53,6 +53,6 @@ class CafeUpdate(BaseSchema):
         json_schema_extra={'example': '+14155552671'}
     )
     description: str | MISSING = MISSING
-    photo_id: UUID | MISSING = MISSING
+    photo_id: UUID | None | MISSING = MISSING
     managers_id: list[int] | MISSING = Field(min_length=MIN_SYMBOL, default=MISSING)
     is_active: bool | MISSING = MISSING

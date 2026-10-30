@@ -1,5 +1,7 @@
 """Задачи Celery."""
+
 from celery_app.tasks.notifications import (
+    notify_booking_cancelled,
     notify_booking_created,
     notify_booking_reminder,
     notify_booking_updated,
@@ -9,6 +11,7 @@ from celery_app.tasks.notifications import (
 )
 
 __all__ = [
+    'notify_booking_cancelled',
     'notify_booking_created',
     'notify_booking_reminder',
     'notify_booking_updated',
