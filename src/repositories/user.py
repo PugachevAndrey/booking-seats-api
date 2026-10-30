@@ -22,7 +22,7 @@ class CRUDUser(CRUDBase[User]):
                 or_(
                     User.email == login,
                     User.phone == login,
-                    User.username == login,
+                    # User.username == login,
                 ),
             ),
         )
