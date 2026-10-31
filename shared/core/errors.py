@@ -40,6 +40,14 @@ class ValidationError(DomainError):
     status_code = 422
 
 
+class PayloadTooLargeError(DomainError):
+    """Тело запроса превышает допустимый размер."""
+
+    default_message = 'Тело запроса слишком большое.'
+    code = 'HTTP_413'
+    status_code = 413
+
+
 class PermissionDeniedError(DomainError):
     """Недостаточно прав."""
 
@@ -59,6 +67,6 @@ class UnauthorizedError(DomainError):
 def error_payload(error: DomainError) -> dict[str, Any]:
     """Сериализует доменную ошибку в словарь ответа."""
     return {
-        'code': error.status_code,
+        'code': error.code,
         'message': error.message,
     }
