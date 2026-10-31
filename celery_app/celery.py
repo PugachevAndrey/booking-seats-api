@@ -21,4 +21,8 @@ celery_app.conf.update(
         'tasks.notify_*': {'queue': 'notifications'},
         'tasks.send_*': {'queue': 'notifications'},
     },
+    worker_send_task_events=True,
+    task_send_sent_event=True,
+    worker_prefetch_multiplier=1,
+    broker_connection_retry_on_startup=True,
 )
