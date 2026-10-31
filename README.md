@@ -429,3 +429,4 @@ GitHub Actions описаны в `.github/workflows`:
 - [PugachevAndrey](https://github.com/PugachevAndrey)
 - [pitonyashka](https://github.com/pitonyashka)
 - [katarina74](https://github.com/katarina74)
+- [Eldar0589](https://github.com/Eldar0589)
