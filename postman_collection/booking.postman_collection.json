@@ -3747,13 +3747,13 @@
           }
         },
         {
-          "name": "POST /media (> 5 Мб) - 422",
+          "name": "POST /media (> 5 Мб) - 413",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Статус 422', () => pm.response.to.have.status(422));"
+                  "pm.test('Статус 413', () => pm.response.to.have.status(413));"
                 ],
                 "type": "text/javascript"
               }

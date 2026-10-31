@@ -31,9 +31,10 @@ async def list_tables(
     cafe_id: int,
     session: DbSession,
     _: Annotated[User, Depends(get_current_user)],
+    is_active: bool | None = None,
 ) -> list[TableInfo]:
-    """Возвращает список столиков."""
-    tables = await get_tables(session, cafe_id)
+    """Все столы без фильтра; is_active=true/false — активные/неактивные."""
+    tables = await get_tables(session, cafe_id, is_active=is_active)
     return [_table_to_info(t) for t in tables]
 
 
@@ -78,7 +79,7 @@ async def get_table_by_id(
     _: Annotated[User, Depends(get_current_user)],
 ) -> TableInfo:
     """Возвращает столик."""
-    table = await get_table(session, table_id)
+    table = await get_table(session, table_id, include_inactive=True)
     if table.cafe_id != cafe_id:
         raise NotFoundError(f'Стол {table_id} не найден в кафе {cafe_id}.')
     return _table_to_info(table)
@@ -97,7 +98,7 @@ async def update_table_by_id(
     current_user: Annotated[User, Depends(get_current_staff)],
 ) -> TableInfo:
     """Обновление информации о столике."""
-    table = await get_table(session, table_id)
+    table = await get_table(session, table_id, include_inactive=True)
     if table.cafe_id != cafe_id:
         raise NotFoundError(f'Стол {table_id} не найден в кафе {cafe_id}.')
 

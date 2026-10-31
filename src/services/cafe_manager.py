@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from repositories.cafe import cafe_crud
 from repositories.cafe_manager import cafe_manager_crud
+from repositories.user import user_crud
 from shared.core.enums import UserRole
 from shared.core.errors import ConflictError, NotFoundError, ValidationError
 from shared.models.cafe_manager import CafeManager

@@ -24,7 +24,14 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
     session = await cm.__aenter__()
     try:
         yield session
-    finally:
+    except BaseException as exc:
+        await cm.__aexit__(
+            type(exc),
+            exc,
+            exc.__traceback__,
+        )
+        raise
+    else:
         await cm.__aexit__(None, None, None)
 
 

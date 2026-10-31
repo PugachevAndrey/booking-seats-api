@@ -24,6 +24,17 @@ class CRUDBase(Generic[ModelType]):
         """Получить запись по id."""
         return await session.get(self.model, obj_id)
 
+    async def get_many(
+        self,
+        session: AsyncSession,
+        obj_ids: list[int],
+    ) -> list[ModelType]:
+        """Получить несколько записей по id."""
+        result = await session.execute(
+            select(self.model).where(self.model.id.in_(obj_ids)),
+        )
+        return list(result.scalars().all())
+
     async def get_multi(self, session: AsyncSession) -> list[ModelType]:
         """Получить все записи."""
         result = await session.execute(select(self.model))

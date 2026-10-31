@@ -32,13 +32,15 @@ async def create_media(
 
     Содержимое, MIME и размер проверяются в роутере (api/v1/media.py)
     до вызова сервиса.
+
+    Коммит не выполняется: запись фиксирует вызывающий код
+    (роутер) после успешной записи файла на диск, чтобы в БД
+    не оставались записи без файла.
     """
     ensure_staff(actor_role)
     validate_media_file_name(file_name)
 
-    media = await media_crud.create_from_dict(
+    return await media_crud.create_from_dict(
         session=session,
         data={'file_name': file_name},
     )
-    await session.commit()
-    return media
