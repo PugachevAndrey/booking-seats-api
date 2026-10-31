@@ -18,7 +18,7 @@ from api.v1.constants import (
 from api.v1.deps import DbSession, get_current_staff
 from schemas.media import MediaInfo
 from services.media import create_media, get_media
-from shared.core.errors import NotFoundError, ValidationError
+from shared.core.errors import NotFoundError, PayloadTooLargeError, ValidationError
 from shared.models.user import User
 
 router = APIRouter(prefix='/media', tags=['Медиа'])
@@ -38,7 +38,9 @@ async def _read_limited(file: UploadFile, max_size: int) -> bytes:
     while chunk := await file.read(UPLOAD_CHUNK_SIZE):
         total += len(chunk)
         if total > max_size:
-            raise ValidationError('Файл больше 5 Мб.')
+            raise PayloadTooLargeError(
+                f'Файл больше {max_size // (1024 * 1024)} Мб.',
+            )
         chunks.append(chunk)
     return b''.join(chunks)
 
