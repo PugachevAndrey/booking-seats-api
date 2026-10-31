@@ -78,6 +78,7 @@ async def upload_media(
     buffer = io.BytesIO()
     image.save(buffer, format='JPEG', quality=90)
     _media_path(media.id).write_bytes(buffer.getvalue())
+    await session.commit()
 
     return MediaInfo(media_id=media.id)
 
