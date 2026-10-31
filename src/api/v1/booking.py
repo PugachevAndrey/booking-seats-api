@@ -52,6 +52,9 @@ def _ensure_user_can_see(
 async def list_bookings(
     session: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
+    show_active: bool | None = None,
+    cafe_id: int | None = None,
+    user_id: int | None = None,
 ) -> list[BookingInfo]:
     """Возвращает список бронирований."""
     actor_cafe_id = None
@@ -63,6 +66,9 @@ async def list_bookings(
         actor_id=current_user.id,
         actor_role=current_user.role,
         actor_cafe_id=actor_cafe_id,
+        show_active=show_active,
+        cafe_id=cafe_id,
+        user_id=user_id,
     )
     return [_booking_to_info(b) for b in bookings]
 

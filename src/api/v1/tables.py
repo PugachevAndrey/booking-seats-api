@@ -30,10 +30,17 @@ def _table_to_info(table: Table) -> TableInfo:
 async def list_tables(
     cafe_id: int,
     session: DbSession,
-    _: Annotated[User, Depends(get_current_user)],
-    is_active: bool | None = None,
+    current_user: Annotated[User, Depends(get_current_user)],
+    show_active: bool | None = None,
 ) -> list[TableInfo]:
-    """Все столы без фильтра; is_active=true/false — активные/неактивные."""
+    """Возвращает список столиков."""
+    if current_user.role == UserRole.USER.value:
+        is_active = True
+    elif current_user.role == UserRole.MANAGER.value:
+        is_active = True if show_active is None else show_active
+    else:
+        is_active = show_active
+
     tables = await get_tables(session, cafe_id, is_active=is_active)
     return [_table_to_info(t) for t in tables]
 
@@ -76,10 +83,11 @@ async def get_table_by_id(
     cafe_id: int,
     table_id: int,
     session: DbSession,
-    _: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> TableInfo:
     """Возвращает столик."""
-    table = await get_table(session, table_id, include_inactive=True)
+    include_inactive = current_user.role != UserRole.USER.value
+    table = await get_table(session, table_id, include_inactive=include_inactive)
     if table.cafe_id != cafe_id:
         raise NotFoundError(f'Стол {table_id} не найден в кафе {cafe_id}.')
     return _table_to_info(table)
