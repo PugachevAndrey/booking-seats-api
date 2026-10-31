@@ -1,12 +1,15 @@
 """Бизнес-логика управления менеджерами кафе."""
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from repositories.cafe import cafe_crud
 from repositories.cafe_manager import cafe_manager_crud
 from repositories.user import user_crud
+from shared.core.enums import UserRole
 from shared.core.errors import ConflictError, NotFoundError, ValidationError
 from shared.models.cafe_manager import CafeManager
+from shared.models.user import User
 
 from .access import ensure_admin
 
@@ -39,28 +42,19 @@ async def _ensure_users_exist(
         )
 
 
-async def _ensure_manager_role(
+async def _ensure_users_are_managers(
     session: AsyncSession,
-    manager_ids: list[int],
+    user_ids: list[int],
 ) -> None:
-    """Проверяет, что у пользователей роль менеджер."""
-    if not manager_ids:
-        return
-    found = await user_crud.get_many(
-        session=session,
-        obj_ids=manager_ids,
+    """Проверяет, что все указанные пользователи имеют роль manager."""
+    result = await session.execute(
+        select(User.id, User.role).where(User.id.in_(user_ids)),
     )
-    found_users = {user.id for user in found}
-    missing = set(manager_ids) - found_users
-    if missing:
-        raise ConflictError(
-            f'Пользователи не найдены: {sorted(missing)}.',
+    not_managers = [row.id for row in result.all() if row.role != UserRole.MANAGER.value]
+    if not_managers:
+        raise ValidationError(
+            f'Не менеджеры: {sorted(not_managers)}.',
         )
-    for user in found:
-        if user.role != 'MANAGER':
-            raise ValidationError(
-                f'Пользователь id={user.id} не является менеджером.',
-            )
 
 
 async def _ensure_managers_free(
@@ -146,8 +140,8 @@ async def sync_cafe_managers(
 
     await _ensure_cafe_exists(session, cafe_id)
     await _ensure_users_exist(session, list(target))
+    await _ensure_users_are_managers(session, list(target))
     await _ensure_managers_free(session, list(target), cafe_id)
-    await _ensure_manager_role(session, list(target))
 
     current = set(
         await cafe_manager_crud.get_manager_ids_by_cafe(
@@ -179,7 +173,7 @@ async def add_cafe_manager(
     ensure_admin(actor_role)
     await _ensure_cafe_exists(session, cafe_id)
     await _ensure_users_exist(session, [user_id])
-    await _ensure_manager_role(session, [user_id])
+    await _ensure_users_are_managers(session, [user_id])
 
     existing = await cafe_manager_crud.get_link(
         session=session,
