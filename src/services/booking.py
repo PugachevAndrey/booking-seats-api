@@ -3,6 +3,7 @@
 from datetime import date, datetime, timezone
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from repositories.booking import booking_crud
@@ -63,31 +64,33 @@ async def get_bookings(
     actor_role: str,
     actor_cafe_id: int | None,
     booking_date: date | None = None,
+    show_active: bool | None = None,
+    cafe_id: int | None = None,
+    user_id: int | None = None,
 ) -> list[Booking]:
-    """Возвращает активные бронирования согласно роли и дате."""
+    """Возвращает бронирования согласно роли и фильтрам."""
+    query = select(Booking)
     if not is_staff(actor_role):
-        bookings = await booking_crud.get_by_user(
-            session=session,
-            user_id=actor_id,
-            booking_date=booking_date,
-        )
+        query = query.where(Booking.user_id == actor_id, Booking.is_active.is_(True))
     elif actor_role == ROLE_ADMIN:
-        bookings = await booking_crud.get_multi(session=session)
-        if booking_date is not None:
-            bookings = [item for item in bookings if item.booking_date == booking_date]
+        if show_active is not None:
+            query = query.where(Booking.is_active == show_active)
     else:
         if actor_cafe_id is None:
             return []
-        bookings = await booking_crud.get_by_cafe(
-            session=session,
-            cafe_id=actor_cafe_id,
-            booking_date=booking_date,
-        )
+        query = query.where(Booking.cafe_id == actor_cafe_id)
+        is_active = True if show_active is None else show_active
+        query = query.where(Booking.is_active == is_active)
 
-    return sorted(
-        (booking for booking in bookings if booking.is_active),
-        key=lambda booking: booking.booking_date,
-    )
+    if cafe_id is not None and is_staff(actor_role):
+        query = query.where(Booking.cafe_id == cafe_id)
+    if user_id is not None and is_staff(actor_role):
+        query = query.where(Booking.user_id == user_id)
+    if booking_date is not None:
+        query = query.where(Booking.booking_date == booking_date)
+
+    result = await session.execute(query.order_by(Booking.booking_date))
+    return list(result.scalars().all())
 
 
 async def is_slot_busy(
@@ -433,7 +436,7 @@ async def delete_booking(
 
     status = booking.status
     if _as_status(status) is not BookingStatus.COMPLETED:
-        status = BookingStatus.CANCELLED.value
+        status = BookingStatus.CANCELED.value
 
     await booking_crud.update(
         session=session,

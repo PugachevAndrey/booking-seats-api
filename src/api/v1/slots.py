@@ -37,10 +37,17 @@ def _slot_to_info(slot: Slot) -> TimeSlotInfo:
 async def list_slots(
     cafe_id: int,
     session: DbSession,
-    _: Annotated[User, Depends(get_current_user)],
-    is_active: bool | None = None,
+    current_user: Annotated[User, Depends(get_current_user)],
+    show_active: bool | None = None,
 ) -> list[TimeSlotInfo]:
-    """Все слоты без фильтра; is_active=true/false — активные/неактивные."""
+    """Возвращает список слотов."""
+    if current_user.role == UserRole.USER.value:
+        is_active = True
+    elif current_user.role == UserRole.MANAGER.value:
+        is_active = True if show_active is None else show_active
+    else:
+        is_active = show_active
+
     slots = await get_slots(session, cafe_id, is_active=is_active)
     return [_slot_to_info(s) for s in slots]
 
@@ -84,10 +91,11 @@ async def get_slot_by_id(
     cafe_id: int,
     slot_id: int,
     session: DbSession,
-    _: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> TimeSlotInfo:
     """Информация о слоте."""
-    slot = await get_slot(session, slot_id, include_inactive=True)
+    include_inactive = current_user.role != UserRole.USER.value
+    slot = await get_slot(session, slot_id, include_inactive=include_inactive)
     if slot.cafe_id != cafe_id:
         raise NotFoundError(f'Слот {slot_id} не найден в кафе {cafe_id}.')
     return _slot_to_info(slot)

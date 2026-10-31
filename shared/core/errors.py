@@ -67,6 +67,6 @@ class UnauthorizedError(DomainError):
 def error_payload(error: DomainError) -> dict[str, Any]:
     """Сериализует доменную ошибку в словарь ответа."""
     return {
-        'code': error.code,
+        'code': error.status_code,
         'message': error.message,
     }
