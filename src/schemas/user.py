@@ -35,14 +35,7 @@ class UserCreate(BaseSchema):
 
     username: str = Field(min_length=1, max_length=MAX_USERNAME_LENGTH)
     email: EmailStr | MISSING = Field(max_length=MAX_LENGTH, default=MISSING)
-    phone: E164PhoneNumber | MISSING = Field(
-        default=MISSING,
-        description=(
-            'Номер телефона в международном формате: '
-            '+, код страны и номер без пробелов. Пример: +79991234567.'
-        ),
-        examples=['+79991234567'],
-    )
+    phone: E164PhoneNumber | MISSING = MISSING
     tg_id: str | MISSING = Field(max_length=MAX_TG_LENGTH, default=MISSING)
     password: str = Field(max_length=MAX_LENGTH, min_length=MIN_PASS)
 
@@ -59,14 +52,7 @@ class UserUpdate(BaseSchema):
 
     username: str | MISSING = Field(max_length=MAX_USERNAME_LENGTH, default=MISSING)
     email: EmailStr | MISSING = Field(max_length=MAX_LENGTH, default=MISSING)
-    phone: E164PhoneNumber | MISSING = Field(
-        default=MISSING,
-        description=(
-            'Номер телефона в международном формате: '
-            '+, код страны и номер без пробелов. Пример: +79991234567.'
-        ),
-        examples=['+79991234567'],
-    )
+    phone: E164PhoneNumber | MISSING = MISSING
     tg_id: str | MISSING = Field(max_length=MAX_TG_LENGTH, default=MISSING)
     role: UserRole | MISSING = MISSING
     password: str | MISSING = Field(max_length=MAX_LENGTH, default=MISSING)
