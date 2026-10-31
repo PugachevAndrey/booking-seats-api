@@ -189,7 +189,7 @@ async def update_user_by_id(
 ) -> User:
     """Обновление пользователя. Админ — любые поля, менеджер — профиль."""
     await _ensure_manager_sees_user(session, current_user, user_id)
-    is_admin = current_user.role == 'admin'
+    is_admin = current_user.role == UserRole.ADMIN.value
     fields = _prepare_update_fields(data, allow_admin_fields=is_admin)
     return await update_user(
         session=session,
