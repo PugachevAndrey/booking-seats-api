@@ -16,10 +16,15 @@ TABLE_EDITABLE_FIELDS = frozenset({'description', 'seat_number', 'is_active'})
 SEAT_NUMBER_MIN = 1
 
 
-async def get_table(session: AsyncSession, table_id: int) -> Table:
-    """Возвращает активный стол по ID."""
+async def get_table(
+    session: AsyncSession,
+    table_id: int,
+    *,
+    include_inactive: bool = False,
+) -> Table:
+    """Возвращает стол по ID; по умолчанию только активный."""
     table = await table_crud.get(session=session, obj_id=table_id)
-    if table is None or not table.is_active:
+    if table is None or (not include_inactive and not table.is_active):
         raise NotFoundError(f'Стол {table_id} не найден.')
     return table
 
@@ -27,15 +32,20 @@ async def get_table(session: AsyncSession, table_id: int) -> Table:
 async def get_tables(
     session: AsyncSession,
     cafe_id: int | None = None,
+    is_active: bool | None = True,
 ) -> list[Table]:
-    """Возвращает список активных столов."""
+    """Возвращает столы: None — все, True — активные, False — неактивные."""
     if cafe_id is None:
         tables = await table_crud.get_multi(session=session)
     else:
         tables = await table_crud.get_by_cafe(session=session, cafe_id=cafe_id)
 
     return sorted(
-        (table for table in tables if table.is_active),
+        (
+            table
+            for table in tables
+            if is_active is None or table.is_active == is_active
+        ),
         key=lambda table: table.id,
     )
 
@@ -87,7 +97,7 @@ async def update_table(
     **fields: Any,
 ) -> Table:
     """Обновляет поля стола. Перенос в другое кафе запрещён."""
-    table = await get_table(session, table_id)
+    table = await get_table(session, table_id, include_inactive=True)
     ensure_cafe_access(actor_role, actor_cafe_id, table.cafe_id)
 
     unknown = set(fields) - TABLE_EDITABLE_FIELDS

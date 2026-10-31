@@ -20,10 +20,40 @@ SLOT_EDITABLE_FIELDS = frozenset(
 SLOT_TIME_FIELDS = frozenset({'start_time', 'end_time'})
 
 
-async def get_slot(session: AsyncSession, slot_id: int) -> Slot:
-    """Возвращает активный слот по ID."""
+async def _ensure_no_time_overlap(
+    session: AsyncSession,
+    cafe_id: int,
+    start_time: time,
+    end_time: time,
+    exclude_slot_id: int | None = None,
+) -> None:
+    """Проверяет пересечение с другими активными слотами кафе."""
+    slots = await slot_crud.get_by_cafe(session=session, cafe_id=cafe_id)
+
+    for existing_slot in slots:
+        if not existing_slot.is_active:
+            continue
+        if existing_slot.id == exclude_slot_id:
+            continue
+
+        if (
+            start_time < existing_slot.end_time
+            and end_time > existing_slot.start_time
+        ):
+            raise ValidationError(
+                'Временной слот пересекается с другим активным слотом кафе.',
+            )
+
+
+async def get_slot(
+    session: AsyncSession,
+    slot_id: int,
+    *,
+    include_inactive: bool = False,
+) -> Slot:
+    """Возвращает слот по ID; по умолчанию только активный."""
     slot = await slot_crud.get(session=session, obj_id=slot_id)
-    if slot is None or not slot.is_active:
+    if slot is None or (not include_inactive and not slot.is_active):
         raise NotFoundError(f'Слот {slot_id} не найден.')
     return slot
 
@@ -31,15 +61,20 @@ async def get_slot(session: AsyncSession, slot_id: int) -> Slot:
 async def get_slots(
     session: AsyncSession,
     cafe_id: int | None = None,
+    is_active: bool | None = True,
 ) -> list[Slot]:
-    """Возвращает список активных слотов."""
+    """Возвращает слоты: None — все, True — активные, False — неактивные."""
     if cafe_id is None:
         slots = await slot_crud.get_multi(session=session)
     else:
         slots = await slot_crud.get_by_cafe(session=session, cafe_id=cafe_id)
 
     return sorted(
-        (slot for slot in slots if slot.is_active),
+        (
+            slot
+            for slot in slots
+            if is_active is None or slot.is_active == is_active
+        ),
         key=lambda slot: slot.start_time,
     )
 
@@ -60,6 +95,13 @@ async def create_slot(
     ensure_cafe_access(actor_role, actor_cafe_id, cafe_id)
     await get_cafe(session, cafe_id)
     validate_slot_time_range(start_time, end_time)
+
+    await _ensure_no_time_overlap(
+        session=session,
+        cafe_id=cafe_id,
+        start_time=start_time,
+        end_time=end_time,
+    )
 
     data: dict[str, Any] = {
         'cafe_id': cafe_id,
@@ -82,7 +124,7 @@ async def update_slot(
     **fields: Any,
 ) -> Slot:
     """Обновляет поля слота. Перенос в другое кафе запрещён."""
-    slot = await get_slot(session, slot_id)
+    slot = await get_slot(session, slot_id, include_inactive=True)
     ensure_cafe_access(actor_role, actor_cafe_id, slot.cafe_id)
 
     unknown = set(fields) - SLOT_EDITABLE_FIELDS
@@ -93,10 +135,20 @@ async def update_slot(
 
     changes = dict(fields)
 
-    if SLOT_TIME_FIELDS & changes.keys():
-        validate_slot_time_range(
-            changes.get('start_time', slot.start_time),
-            changes.get('end_time', slot.end_time),
+    start_time = changes.get('start_time', slot.start_time)
+    end_time = changes.get('end_time', slot.end_time)
+    will_be_active = changes.get('is_active', slot.is_active)
+
+    if SLOT_TIME_FIELDS & changes.keys() or will_be_active:
+        validate_slot_time_range(start_time, end_time)
+
+    if will_be_active:
+        await _ensure_no_time_overlap(
+            session=session,
+            cafe_id=slot.cafe_id,
+            start_time=start_time,
+            end_time=end_time,
+            exclude_slot_id=slot.id,
         )
 
     return await slot_crud.update(

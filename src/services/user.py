@@ -155,8 +155,8 @@ def _validate_change_permission(
             f'Поля нельзя изменить: {", ".join(sorted(unknown))}.',
         )
 
-    if fields.get('is_active') is False and is_self:
-        raise ValidationError('Нельзя деактивировать себя.')
+    if is_self and 'is_active' in fields:
+        raise ValidationError('Нельзя менять статус активности самого себя.')
 
     if PROFILE_FIELDS & fields.keys():
         merged_email = fields.get('email', user.email)
@@ -167,8 +167,6 @@ def _validate_change_permission(
     if is_self:
         if 'role' in fields:
             raise ValidationError('Нельзя менять собственную роль.')
-        if fields.get('is_active') is False:
-            raise ValidationError('Нельзя заблокировать самого себя.')
 
 
 async def update_user(
