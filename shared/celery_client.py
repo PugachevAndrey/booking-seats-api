@@ -16,7 +16,7 @@ celery_client = Celery(
 )
 
 
-def send_notification(task_name: str, booking_id: int, **kwargs: Any) -> None:
+def send_notification(task_name: str, booking_id: int, **kwargs: Any) -> str | None:
     """Отправить задачу в Celery, не блокируя API. Возвращает ID задачи."""
     try:
         result = celery_client.send_task(
@@ -53,6 +53,8 @@ celery_client.conf.update(
     accept_content=['json'],
     timezone='UTC',
     enable_utc=True,
+    # Клиент тоже публикует событие "task sent" — нужно для Flower
+    task_send_sent_event=True,
     task_routes={
         'tasks.notify_*': {'queue': 'notifications'},
         'tasks.send_*': {'queue': 'notifications'},
