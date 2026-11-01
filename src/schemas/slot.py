@@ -1,10 +1,13 @@
 """Схемы временных слотов."""
 
 from datetime import time
-from typing import Self
+from typing import Any, Self
 
 from pydantic import (
-    ConfigDict, Field, field_validator, model_validator,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_validator,
 )
 
 from validators import validate_slot_time_range
@@ -55,7 +58,6 @@ class TimeSlotCreate(BaseSchema):
     @model_validator(mode='after')
     def validate_time(self) -> Self:
         """Проверка что время окончания не раньше времени начала."""
-
         validate_slot_time_range(
             self.start_time,
             self.end_time,
@@ -73,7 +75,7 @@ class TimeSlotUpdate(BaseSchema):
 
     @model_validator(mode='before')
     @classmethod
-    def _reject_explicit_nulls(cls, data):
+    def _reject_explicit_nulls(cls, data: Any) -> Any:
         """Отклоняем явный null для NOT NULL-полей (422 вместо 500)."""
         if isinstance(data, dict):
             for field in ('start_time', 'end_time', 'is_active'):
