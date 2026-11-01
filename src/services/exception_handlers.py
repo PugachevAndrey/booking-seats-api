@@ -1,0 +1,83 @@
+"""Обработчики исключений FastAPI."""
+
+import logging
+
+from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+from shared.core.errors import DomainError, error_payload
+from validators import (
+    DEFAULT_HTTP_MESSAGE,
+    build_validation_message,
+)
+
+logger = logging.getLogger(__name__)
+
+
+def register_exception_handlers(application: FastAPI) -> None:
+    """Регистрирует обработчики исключений."""
+
+    @application.exception_handler(DomainError)
+    async def handle_domain_error(
+        request: Request,
+        exception: DomainError,
+    ) -> JSONResponse:
+        """Обрабатывает доменные ошибки приложения."""
+        return JSONResponse(
+            status_code=exception.status_code,
+            content=error_payload(exception),
+        )
+
+    @application.exception_handler(RequestValidationError)
+    async def handle_validation_error(
+        request: Request,
+        exception: RequestValidationError,
+    ) -> JSONResponse:
+        """Обрабатывает ошибки валидации запроса."""
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            content={
+                'code': 422,
+                'message': build_validation_message(exception),
+            },
+        )
+
+    @application.exception_handler(StarletteHTTPException)
+    async def handle_http_exception(
+        request: Request,
+        exception: StarletteHTTPException,
+    ) -> JSONResponse:
+        """Обрабатывает прочие ошибки HTTP."""
+        detail = exception.detail
+        if isinstance(detail, str):
+            message = detail
+        elif detail is None:
+            message = DEFAULT_HTTP_MESSAGE
+        else:
+            message = str(detail)
+
+        return JSONResponse(
+            status_code=exception.status_code,
+            content={
+                'code': exception.status_code,
+                'message': message,
+            },
+            headers=getattr(exception, 'headers', None) or {},
+        )
+
+    @application.exception_handler(Exception)
+    async def handle_unexpected_error(
+        request: Request,
+        exception: Exception,
+    ) -> JSONResponse:
+        """Отдаёт единый формат для непредвиденных ошибок."""
+        logger.exception('Необработанная ошибка', exc_info=exception)
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                'code': 500,
+                'message': 'Внутренняя ошибка сервера.',
+            },
+        )

@@ -1,10 +1,13 @@
-from typing import AsyncIterator
+"""Настройка асинхронного движка и сессий SQLAlchemy."""
+
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
 from fastapi import HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from core.settings import settings
+from shared.core.settings import settings
 
 async_engine = create_async_engine(
     url=settings.db_url,
@@ -17,7 +20,8 @@ session_maker: async_sessionmaker[AsyncSession] = async_sessionmaker(
 )
 
 
-async def get_session() -> AsyncIterator[AsyncSession]:
+@asynccontextmanager
+async def get_session() -> AsyncGenerator[AsyncSession, None]:
     """Получение асинхронной сессии для FastAPI Depends."""
     async with session_maker() as session:
         try:

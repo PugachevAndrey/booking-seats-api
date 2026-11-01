@@ -7,6 +7,30 @@ services:
       - ./.env
     ports:
       - "8000:8000"
+    volumes:
+      - "media_data:/app/media"
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/', timeout=3)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app
+    restart: unless-stopped
 
   db:
     image: postgres:17-alpine
@@ -16,6 +40,8 @@ services:
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - "pgdata:/var/lib/postgresql/data/pgdata"
+    ports:
+      - "5432:5432"
     command: >
       postgres -c max_connections=1000
                -c shared_buffers=256MB
@@ -31,5 +57,50 @@ services:
       retries: 5
     restart: unless-stopped
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    env_file:
+      - ./.env
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  celery_worker:
+    build:
+      context: ..
+      dockerfile: celery_app/Dockerfile
+    env_file:
+      - ./.env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  flower:
+    image: mher/flower:latest
+    env_file:
+      - ./.env
+    environment:
+      CELERY_BROKER_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672//
+    ports:
+      - "5555:5555"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   pgdata:
+  media_data:

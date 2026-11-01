@@ -1,7 +1,8 @@
-import uuid
+"""Базовые классы и общие колонки таблиц (id, is_active, timestamps)."""
+
 from datetime import datetime, timezone
 
-from sqlalchemy import BOOLEAN, UUID, DateTime, func
+from sqlalchemy import BOOLEAN, DateTime, Integer, func
 from sqlalchemy.orm import Mapped, declarative_base, declared_attr, mapped_column
 
 
@@ -18,7 +19,7 @@ class PreBase:
         """Возвращает имя таблицы на основе названия класса."""
         return f'{cls.__name__.lower()}s'
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, default=uuid.uuid4)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     is_active: Mapped[bool] = mapped_column(BOOLEAN, default=True, server_default='true')
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
