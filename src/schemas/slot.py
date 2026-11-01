@@ -1,9 +1,14 @@
 """Схемы временных слотов."""
 
 from datetime import time
-from typing import Self
+from typing import Any, Self
 
-from pydantic import MISSING, ConfigDict, Field, model_validator
+from pydantic import (
+    ConfigDict,
+    Field,
+    field_validator,
+    model_validator,
+)
 
 from validators import validate_slot_time_range
 
@@ -36,14 +41,23 @@ class TimeSlotCreate(BaseSchema):
 
     start_time: time
     end_time: time
-    description: str | MISSING = Field(max_length=MAX_LENGTH, default=MISSING)
+    description: str | None = Field(default=None, max_length=MAX_LENGTH)
+
+    @field_validator('start_time', 'end_time')
+    @classmethod
+    def _strip_tz(cls, v: time) -> time:
+        """Слот — wall-clock время кафе; 'Z'/offset отбрасываем.
+
+        Колонка в БД — TIME WITHOUT TIME ZONE, поэтому aware-time
+        нужно нормализовать до записи, иначе asyncpg падает.
+        """
+        if v.tzinfo is not None:
+            v = v.replace(tzinfo=None)
+        return v
 
     @model_validator(mode='after')
     def validate_time(self) -> Self:
         """Проверка что время окончания не раньше времени начала."""
-        if self.start_time is MISSING or self.end_time is MISSING:
-            return self
-
         validate_slot_time_range(
             self.start_time,
             self.end_time,
@@ -51,9 +65,35 @@ class TimeSlotCreate(BaseSchema):
         return self
 
 
-class TimeSlotUpdate(TimeSlotCreate):
+class TimeSlotUpdate(BaseSchema):
     """Схема изменения временного слота."""
 
-    start_time: time | MISSING = MISSING
-    end_time: time | MISSING = MISSING
-    is_active: bool | MISSING = MISSING
+    start_time: time | None = None
+    end_time: time | None = None
+    description: str | None = Field(default=None, max_length=MAX_LENGTH)
+    is_active: bool | None = None
+
+    @model_validator(mode='before')
+    @classmethod
+    def _reject_explicit_nulls(cls, data: Any) -> Any:
+        """Отклоняем явный null для NOT NULL-полей (422 вместо 500)."""
+        if isinstance(data, dict):
+            for field in ('start_time', 'end_time', 'is_active'):
+                if field in data and data[field] is None:
+                    raise ValueError(f'{field} не может быть null.')
+        return data
+
+    @field_validator('start_time', 'end_time')
+    @classmethod
+    def _strip_tz(cls, v: time | None) -> time | None:
+        """Нормализация aware-time для PATCH-запроса."""
+        if v is not None and v.tzinfo is not None:
+            v = v.replace(tzinfo=None)
+        return v
+
+    @model_validator(mode='after')
+    def validate_time(self) -> Self:
+        """Проверка, если переданы оба поля."""
+        if self.start_time is not None and self.end_time is not None:
+            validate_slot_time_range(self.start_time, self.end_time)
+        return self
