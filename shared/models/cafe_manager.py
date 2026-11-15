@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, Integer
+from sqlalchemy import ForeignKey, Integer, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from shared.core.base_model import Base
@@ -20,7 +20,6 @@ class CafeManager(Base):
     user_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey('users.id'),
-        unique=True,
         comment='ID пользователя',
     )
     cafe_id: Mapped[int] = mapped_column(
@@ -31,3 +30,9 @@ class CafeManager(Base):
 
     user: Mapped["User"] = relationship(lazy="selectin")
     cafe: Mapped["Cafe"] = relationship(lazy="selectin")
+
+    __table_args__ = (
+        UniqueConstraint(
+            'user_id', 'cafe_id', name='uq_cafe_manager_user_cafe'
+        ),
+    )
