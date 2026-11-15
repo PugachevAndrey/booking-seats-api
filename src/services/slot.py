@@ -27,22 +27,18 @@ async def _ensure_no_time_overlap(
     end_time: time,
     exclude_slot_id: int | None = None,
 ) -> None:
-    """Проверяет пересечение с другими активными слотами кафе."""
-    slots = await slot_crud.get_by_cafe(session=session, cafe_id=cafe_id)
-
-    for existing_slot in slots:
-        if not existing_slot.is_active:
-            continue
-        if existing_slot.id == exclude_slot_id:
-            continue
-
-        if (
-            start_time < existing_slot.end_time
-            and end_time > existing_slot.start_time
-        ):
-            raise ValidationError(
-                'Временной слот пересекается с другим активным слотом кафе.',
-            )
+    """Проверяет пересечение с другими активными слотами кафе через SQL."""
+    overlap = await slot_crud.check_overlap(
+        session=session,
+        cafe_id=cafe_id,
+        start_time=start_time,
+        end_time=end_time,
+        exclude_slot_id=exclude_slot_id,
+    )
+    if overlap:
+        raise ValidationError(
+            'Временной слот пересекается с другим активным слотом кафе.',
+        )
 
 
 async def get_slot(
@@ -62,20 +58,24 @@ async def get_slots(
     session: AsyncSession,
     cafe_id: int | None = None,
     is_active: bool | None = True,
+    skip: int = 0,
+    limit: int = 100,
 ) -> list[Slot]:
     """Возвращает слоты: None — все, True — активные, False — неактивные."""
     if cafe_id is None:
-        slots = await slot_crud.get_multi(session=session)
-    else:
-        slots = await slot_crud.get_by_cafe(session=session, cafe_id=cafe_id)
+        return await slot_crud.get_multi(
+            session=session,
+            skip=skip,
+            limit=limit,
+            is_active=is_active if is_active is not None else None,
+        )
 
-    return sorted(
-        (
-            slot
-            for slot in slots
-            if is_active is None or slot.is_active == is_active
-        ),
-        key=lambda slot: slot.start_time,
+    return await slot_crud.get_by_cafe(
+        session=session,
+        cafe_id=cafe_id,
+        is_active=is_active,
+        skip=skip,
+        limit=limit,
     )
 
 
@@ -112,7 +112,7 @@ async def create_slot(
         data['description'] = description
 
     slot = await slot_crud.create_from_dict(session=session, data=data)
-    await session.commit()
+    await session.flush()
     return slot
 
 

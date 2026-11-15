@@ -44,7 +44,7 @@ async def get_cafes(
 ) -> list[Cafe]:
     """Возвращает список кафе.
 
-    is_active=None — все кафе; True — только активные; False — только неактивные.
+    is_active=None—все кафе;True — только активные; False — только неактивные.
     """
     cafes = await cafe_crud.get_multi(session=session)
     if is_active is not None:
@@ -80,10 +80,7 @@ async def create_cafe(
     )
 
     await sync_cafe_managers(session, cafe.id, managers_id or None)
-    if managers_id:
-        await session.refresh(cafe, attribute_names=['managers'])
-
-    await session.commit()
+    await session.flush()
     return cafe
 
 
@@ -119,7 +116,6 @@ async def update_cafe(
 
     if managers_requested:
         await sync_cafe_managers(session, cafe_id, managers_id)
-        await session.refresh(cafe, attribute_names=['managers'])
 
     if changes:
         cafe = await cafe_crud.update(

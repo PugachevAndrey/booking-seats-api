@@ -328,7 +328,7 @@ async def create_booking(
             'user_id': user_id,
             'cafe_id': cafe_id,
             'guest_number': guest_number,
-            'note': note or '',
+            'note': note,
             'status': BookingStatus.BOOKING.value,
             'booking_date': booking_date,
         },
@@ -344,7 +344,7 @@ async def create_booking(
         booking_id=booking.id,
     )
     booking.tables_slots = links
-    await session.commit()
+    await session.flush()
     return booking
 
 
@@ -412,7 +412,11 @@ async def update_booking(
             booking_id=booking_id,
             pairs=pairs,
         )
-        await session.refresh(booking, attribute_names=['tables_slots'])
+        links = await booking_crud.get_active_links(
+            session=session,
+            booking_id=booking_id,
+        )
+        booking.tables_slots = links
 
     return booking
 

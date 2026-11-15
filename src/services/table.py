@@ -85,7 +85,7 @@ async def create_table(
         data['description'] = description
 
     table = await table_crud.create_from_dict(session=session, data=data)
-    await session.commit()
+    await session.flush()
     return table
 
 
