@@ -1,6 +1,6 @@
-"""Схемы столов."""
+"""Схемы столиков."""
 
-from pydantic import MISSING, ConfigDict, Field
+from pydantic import ConfigDict, Field
 
 from .base import BaseSchema, MainSchema
 from .cafe import CafeShortInfo
@@ -8,7 +8,7 @@ from .constants import MAX_LENGTH
 
 
 class TableShortInfo(BaseSchema):
-    """Схема чтения мини-инфо о столе."""
+    """Краткая информация о столике."""
 
     id: int
     description: str | None
@@ -18,7 +18,7 @@ class TableShortInfo(BaseSchema):
 
 
 class TableInfo(TableShortInfo, MainSchema):
-    """Схема чтения инфо о столе."""
+    """Полная информация о столике."""
 
     cafe: CafeShortInfo
 
@@ -26,15 +26,15 @@ class TableInfo(TableShortInfo, MainSchema):
 
 
 class TableCreate(BaseSchema):
-    """Схема создания стола."""
+    """Схема создания столика."""
 
-    description: str | MISSING = Field(max_length=MAX_LENGTH, default=MISSING)
+    description: str | None = Field(default=None, max_length=MAX_LENGTH)
     seat_number: int
 
 
 class TableUpdate(BaseSchema):
-    """Схема изменения стола."""
+    """Схема обновления столика."""
 
-    description: str | MISSING = MISSING
-    seat_number: int | MISSING = MISSING
-    is_active: bool | MISSING = MISSING
+    description: str | None = Field(default=None, max_length=MAX_LENGTH)
+    seat_number: int | None = None
+    is_active: bool | None = None
