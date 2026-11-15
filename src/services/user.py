@@ -25,7 +25,9 @@ UNIQUE_VIOLATION_CODE = '23505'
 
 def _is_unique_violation(exc: IntegrityError) -> bool:
     """Проверяет, что IntegrityError вызвана нарушением UNIQUE."""
-    return getattr(getattr(exc, 'orig', None), 'pgcode', None) == (UNIQUE_VIOLATION_CODE)
+    return getattr(
+        getattr(exc, 'orig', None), 'pgcode', None,
+    ) == (UNIQUE_VIOLATION_CODE)
 
 
 def _conflict_from_integrity() -> ConflictError:
@@ -128,10 +130,9 @@ async def create_user(
                 'role': role,
             },
         )
-        await session.commit()
+        await session.flush()
         return user
     except IntegrityError as exc:
-        await session.rollback()
         if _is_unique_violation(exc):
             raise _conflict_from_integrity() from exc
         raise
@@ -202,8 +203,6 @@ async def update_user(
         user.set_password(password)
 
     if not fields:
-        await session.flush()
-        await session.commit()
         return user
 
     try:
@@ -212,10 +211,9 @@ async def update_user(
             db_obj=user,
             obj_in=UserUpdate(**fields),
         )
-        await session.commit()
+        await session.flush()
         return updated
     except IntegrityError as exc:
-        await session.rollback()
         if _is_unique_violation(exc):
             raise _conflict_from_integrity() from exc
         raise
@@ -237,4 +235,3 @@ async def delete_user(
         db_obj=user,
         obj_in=UserUpdate(is_active=False),
     )
-    await session.commit()

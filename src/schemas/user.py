@@ -2,30 +2,31 @@
 
 from typing import Self
 
-from pydantic import MISSING, ConfigDict, EmailStr, Field, model_validator
+from pydantic import ConfigDict, EmailStr, Field, SecretStr, model_validator
 
 from shared.core.enums import UserRole
 
-from .base import BaseSchema, E164PhoneNumber, MainSchema
-from .constants import MAX_LENGTH, MAX_TG_LENGTH, MAX_USERNAME_LENGTH, MIN_PASS
+from .base import BaseSchema, MainSchema
+from .constants import MAX_LENGTH, MAX_TG_LENGTH, MAX_USERNAME_LENGTH, MIN_SYMBOL, StrictPhoneNumber
 
 
 class UserShortInfo(BaseSchema):
-    """Схема чтения мини-инфо о пользователе."""
+    """Краткая информация о пользователе."""
 
     id: int
     username: str
-    email: EmailStr | None
-    phone: E164PhoneNumber | None
-    tg_id: str | None
 
     model_config = ConfigDict(from_attributes=True, extra='forbid')
 
 
 class UserInfo(UserShortInfo, MainSchema):
-    """Схема чтения инфо о пользователе."""
+    """Полная информация о пользователе."""
 
+    email: EmailStr | None
+    phone: StrictPhoneNumber | None
+    tg_id: str | None
     role: UserRole
+    is_active: bool
 
     model_config = ConfigDict(from_attributes=True, extra='forbid')
 
@@ -33,33 +34,29 @@ class UserInfo(UserShortInfo, MainSchema):
 class UserCreate(BaseSchema):
     """Схема создания пользователя."""
 
-    username: str = Field(min_length=1, max_length=MAX_USERNAME_LENGTH)
-    email: EmailStr | MISSING = Field(max_length=MAX_LENGTH, default=MISSING)
-    phone: E164PhoneNumber | MISSING = Field(
-        default=MISSING,
-        json_schema_extra={'example': '+14155552671'},
+    username: str = Field(
+        min_length=MIN_SYMBOL, max_length=MAX_USERNAME_LENGTH,
     )
-    tg_id: str | MISSING = Field(max_length=MAX_TG_LENGTH, default=MISSING)
-    password: str = Field(max_length=MAX_LENGTH, min_length=MIN_PASS)
+    email: EmailStr | None = Field(default=None, max_length=MAX_LENGTH)
+    phone: StrictPhoneNumber | None = None
+    tg_id: str | None = Field(default=None, max_length=MAX_TG_LENGTH)
+    password: SecretStr
 
     @model_validator(mode='after')
-    def check_login(self) -> Self:
-        """Проверка наличия email или phone."""
-        if self.email is MISSING and self.phone is MISSING:
-            raise ValueError('Введите email или phone')
+    def check_email_or_phone(self) -> Self:
+        """Нужен хотя бы email или телефон."""
+        if self.email is None and self.phone is None:
+            raise ValueError('Нужен email или телефон.')
         return self
 
 
 class UserUpdate(BaseSchema):
-    """Схема изменения пользователя."""
+    """Схема обновления пользователя."""
 
-    username: str | MISSING = Field(max_length=MAX_USERNAME_LENGTH, default=MISSING)
-    email: EmailStr | MISSING = Field(max_length=MAX_LENGTH, default=MISSING)
-    phone: E164PhoneNumber | MISSING = Field(
-        default=MISSING,
-        json_schema_extra={'example': '+14155552671'},
-    )
-    tg_id: str | MISSING = Field(max_length=MAX_TG_LENGTH, default=MISSING)
-    role: UserRole | MISSING = MISSING
-    password: str | MISSING = Field(max_length=MAX_LENGTH, default=MISSING)
-    is_active: bool | MISSING = MISSING
+    username: str | None = Field(default=None, max_length=MAX_USERNAME_LENGTH)
+    email: EmailStr | None = Field(default=None, max_length=MAX_LENGTH)
+    phone: StrictPhoneNumber | None = None
+    tg_id: str | None = Field(default=None, max_length=MAX_TG_LENGTH)
+    role: UserRole | None = None
+    password: SecretStr | None = None
+    is_active: bool | None = None

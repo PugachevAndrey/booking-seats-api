@@ -9,7 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from repositories.booking import booking_crud
 from repositories.cafe import cafe_crud
 from repositories.slot import slot_crud
-from repositories.table import table_crud
 from schemas.booking import BookingUpdate
 from shared.core.enums import BookingStatus
 from shared.core.errors import (
@@ -71,7 +70,9 @@ async def get_bookings(
     """Возвращает бронирования согласно роли и фильтрам."""
     query = select(Booking)
     if not is_staff(actor_role):
-        query = query.where(Booking.user_id == actor_id, Booking.is_active.is_(True))
+        query = query.where(
+            Booking.user_id == actor_id, Booking.is_active.is_(True),
+        )
     elif actor_role == ROLE_ADMIN:
         if show_active is not None:
             query = query.where(Booking.is_active == show_active)
@@ -100,7 +101,7 @@ async def is_slot_busy(
     booking_date: date,
     exclude_booking_id: int | None = None,
 ) -> bool:
-    """Проверяет, занят ли стол в слоте на дату брони (с учетом пересечений)."""
+    """Проверяет, занят ли стол в слоте на дату брони(с учетом пересечений)."""
     slot = await slot_crud.get(session=session, obj_id=slot_id)
     if slot is None:
         raise NotFoundError(f'Слот {slot_id} не найден.')
@@ -133,7 +134,13 @@ async def _ensure_table_and_slot_in_cafe(
     cafe_id: int,
 ) -> Table:
     """Проверяет, что стол и слот принадлежат кафе. Возвращает стол."""
-    table = await table_crud.get(session=session, obj_id=table_id)
+    table_result = await session.execute(
+        select(Table)
+        .where(Table.id == table_id)
+        .with_for_update(),
+    )
+    table = table_result.scalar_one_or_none()
+
     if table is None or not table.is_active:
         raise NotFoundError(f'Стол {table_id} не найден.')
     if table.cafe_id != cafe_id:
@@ -179,7 +186,9 @@ async def _ensure_pairs_free(
 
     if guest_number is not None and guest_number > total_seats:
         raise ValidationError(
-            f'Количество гостей ({guest_number}) больше количества мест ({total_seats}).',
+            f'Количество гостей ({guest_number}) больше количества мест ({
+                total_seats
+            }).',
         )
 
 
@@ -248,7 +257,9 @@ def _validate_status_change(
         raise PermissionDeniedError(
             'Менять статус бронирования может только персонал.',
         )
-    if _as_status(changes['status']) is BookingStatus.COMPLETED and booking.booking_date > date.today():
+    if _as_status(changes[
+        'status'
+    ]) is BookingStatus.COMPLETED and booking.booking_date > date.today():
         raise ValidationError('Нельзя завершить бронь на будущую дату.')
 
 
@@ -309,7 +320,11 @@ async def create_booking(
     if booking_date == now.date():
         for _, slot_id in pairs:
             slot = await slot_crud.get(session=session, obj_id=slot_id)
-            if slot is not None and slot.start_time is not None and slot.start_time <= now.time():
+            if (
+                slot is not None
+                and slot.start_time is not None
+                and slot.start_time <= now.time()
+            ):
                 raise ValidationError(
                     'Нельзя бронировать на прошедшее время.',
                 )
@@ -328,7 +343,7 @@ async def create_booking(
             'user_id': user_id,
             'cafe_id': cafe_id,
             'guest_number': guest_number,
-            'note': note or '',
+            'note': note,
             'status': BookingStatus.BOOKING.value,
             'booking_date': booking_date,
         },
@@ -344,7 +359,7 @@ async def create_booking(
         booking_id=booking.id,
     )
     booking.tables_slots = links
-    await session.commit()
+    await session.flush()
     return booking
 
 
@@ -412,7 +427,11 @@ async def update_booking(
             booking_id=booking_id,
             pairs=pairs,
         )
-        await session.refresh(booking, attribute_names=['tables_slots'])
+        links = await booking_crud.get_active_links(
+            session=session,
+            booking_id=booking_id,
+        )
+        booking.tables_slots = links
 
     return booking
 

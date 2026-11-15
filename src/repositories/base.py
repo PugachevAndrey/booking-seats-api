@@ -24,20 +24,24 @@ class CRUDBase(Generic[ModelType]):
         """Получить запись по id."""
         return await session.get(self.model, obj_id)
 
-    async def get_many(
+    async def get_multi(
         self,
         session: AsyncSession,
-        obj_ids: list[int],
+        skip: int = 0,
+        limit: int = 100,
+        **filters: Any,
     ) -> list[ModelType]:
-        """Получить несколько записей по id."""
-        result = await session.execute(
-            select(self.model).where(self.model.id.in_(obj_ids)),
-        )
-        return list(result.scalars().all())
+        """Получить все записи с фильтрацией и пагинацией."""
+        query = select(self.model)
 
-    async def get_multi(self, session: AsyncSession) -> list[ModelType]:
-        """Получить все записи."""
-        result = await session.execute(select(self.model))
+        # Применяем фильтры, если они переданы
+        for field, value in filters.items():
+            if hasattr(self.model, field) and value is not None:
+                query = query.where(getattr(self.model, field) == value)
+
+        result = await session.execute(
+            query.offset(skip).limit(limit),
+        )
         return list(result.scalars().all())
 
     async def get_by_attribute(
@@ -53,17 +57,24 @@ class CRUDBase(Generic[ModelType]):
         )
         return result.scalar_one_or_none()
 
+    async def _create(
+        self,
+        session: AsyncSession,
+        data: dict[str, Any],
+    ) -> ModelType:
+        """Приватный метод для создания записи (без дублирования кода)."""
+        db_obj = self.model(**data)
+        session.add(db_obj)
+        await session.flush()
+        return db_obj
+
     async def create(
         self,
         session: AsyncSession,
         obj_in: BaseModel,
     ) -> ModelType:
-        """Создать новую запись."""
-        db_obj = self.model(**obj_in.model_dump())
-        session.add(db_obj)
-        await session.flush()
-        await session.refresh(db_obj)
-        return db_obj
+        """Создать новую запись из Pydantic-схемы."""
+        return await self._create(session, obj_in.model_dump())
 
     async def create_from_dict(
         self,
@@ -71,11 +82,7 @@ class CRUDBase(Generic[ModelType]):
         data: dict[str, Any],
     ) -> ModelType:
         """Создать новую запись из словаря."""
-        db_obj = self.model(**data)
-        session.add(db_obj)
-        await session.flush()
-        await session.refresh(db_obj)
-        return db_obj
+        return await self._create(session, data)
 
     async def update(
         self,
@@ -89,5 +96,5 @@ class CRUDBase(Generic[ModelType]):
             setattr(db_obj, field, value)
         session.add(db_obj)
         await session.flush()
-        await session.refresh(db_obj)
+        # refresh() удален
         return db_obj

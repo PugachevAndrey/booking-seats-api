@@ -18,6 +18,7 @@ from api.v1 import (
     users,
 )
 from services.exception_handlers import register_exception_handlers
+from shared.core.db import async_engine
 from shared.core.logging_config import setup_logging
 from shared.core.settings import settings
 
@@ -29,6 +30,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI) -> AsyncGenerator:
     """Жизненный цикл приложения FastAPI."""
     yield
+    await async_engine.dispose()
 
 
 app = FastAPI(
@@ -40,7 +42,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=['*'],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=['*'],
     allow_headers=['*'],
 )
