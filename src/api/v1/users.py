@@ -108,7 +108,7 @@ async def register_user(
     current_user: Annotated[User | None, Depends(get_optional_user)],
 ) -> User:
     """Регистрация. Доступна анониму, менеджеру и админу."""
-    if current_user is not None and current_user.role == 'user':
+    if current_user is not None and current_user.role == UserRole.USER.value:
         raise PermissionDeniedError('Нет прав на регистрацию пользователей.')
 
     password_value = data.password

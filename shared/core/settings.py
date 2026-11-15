@@ -12,9 +12,10 @@ class Settings(BaseSettings):
     """Настройки приложения."""
 
     # Общие настройки
-    title: str = 'Базовый набор FastAPI+SQLAlchemy+Postgres'
-    version: str = '0.0.1'
-    description: str = 'Основа для приложения'
+    title: str = 'Система бронирования мест в кафе'
+    version: str = '1.0.0'
+    description: str = 'API для управления '
+    'бронированием столов и предзаказом меню'
 
     # Настройки подключения к БД
     postgres_user: str
@@ -59,7 +60,9 @@ class Settings(BaseSettings):
     def db_url(self) -> str:
         """Строка подключения к БД."""
         return (
-            f'postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}@'
+            f'postgresql+asyncpg://{
+                self.postgres_user
+            }:{self.postgres_password}@'
             f'{self.postgres_server}:{self.postgres_port}/{self.postgres_db}'
         )
 
