@@ -2,7 +2,7 @@
 
 from datetime import date
 
-from pydantic import MISSING, ConfigDict, Field
+from pydantic import ConfigDict, Field
 
 from shared.core.enums import BookingStatus
 
@@ -34,19 +34,21 @@ class BookingCreate(BaseSchema):
     cafe_id: int
     tables_slots: list[BookingTableSlot]
     guest_number: int
-    note: str | None | MISSING = MISSING
+    note: str | None = None
     booking_date: date
-    remind_before_minutes: int | None | MISSING = MISSING
+    remind_before_minutes: int | None = None
 
 
 class BookingUpdate(BaseSchema):
     """Схема изменения бронирования."""
 
-    tables_slots: list[BookingTableSlot] | MISSING = Field(default=MISSING, min_length=MIN_SYMBOL)
-    guest_number: int | MISSING = MISSING
-    note: str | MISSING = MISSING
-    status: BookingStatus | MISSING = MISSING
-    booking_date: date | MISSING = MISSING
-    is_active: bool | MISSING = MISSING
-    reminder_task_id: str | None | MISSING = MISSING
-    remind_before_minutes: int | None | MISSING = MISSING
+    tables_slots: list[BookingTableSlot] | None = Field(
+        default=None, min_length=MIN_SYMBOL,
+    )
+    guest_number: int | None = None
+    note: str | None = None
+    status: BookingStatus | None = None
+    booking_date: date | None = None
+    is_active: bool | None = None
+    # reminder_task_id удален по замечанию наставника!
+    remind_before_minutes: int | None = None
