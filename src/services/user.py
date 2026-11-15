@@ -25,7 +25,9 @@ UNIQUE_VIOLATION_CODE = '23505'
 
 def _is_unique_violation(exc: IntegrityError) -> bool:
     """Проверяет, что IntegrityError вызвана нарушением UNIQUE."""
-    return getattr(getattr(exc, 'orig', None), 'pgcode', None) == (UNIQUE_VIOLATION_CODE)
+    return getattr(
+        getattr(exc, 'orig', None), 'pgcode', None,
+    ) == (UNIQUE_VIOLATION_CODE)
 
 
 def _conflict_from_integrity() -> ConflictError:

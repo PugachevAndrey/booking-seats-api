@@ -3,12 +3,14 @@
 from datetime import time
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from repositories.slot import slot_crud
 from schemas.slot import TimeSlotUpdate
 from services.cafe import get_cafe
 from shared.core.errors import NotFoundError, ValidationError
+from shared.models.cafe import Cafe
 from shared.models.slot import Slot
 from validators import validate_slot_time_range
 
@@ -95,6 +97,10 @@ async def create_slot(
     ensure_cafe_access(actor_role, actor_cafe_id, cafe_id)
     await get_cafe(session, cafe_id)
     validate_slot_time_range(start_time, end_time)
+
+    await session.execute(
+        select(Cafe).where(Cafe.id == cafe_id).with_for_update(),
+    )
 
     await _ensure_no_time_overlap(
         session=session,
